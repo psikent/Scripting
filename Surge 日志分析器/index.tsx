@@ -170,6 +170,7 @@ function LogSection({ entries, memoryPoints, selectedLevel, searchText, sliderIn
   const idx = Math.min(memoryPoints.length - 1, Math.max(0, Math.round(sliderIndex.value)))
   const query = searchText.value
   const showAll = showAllTime.value
+  const showHelp = useObservable(false)
   const display = useMemo(
     () => selectVisibleEntries(entries, memoryPoints, curKey === "ALL" ? null : curKey, query, idx, showAll),
     [entries, memoryPoints, curKey, query, idx, showAll],
@@ -180,7 +181,26 @@ function LogSection({ entries, memoryPoints, selectedLevel, searchText, sliderIn
     [display, hasMemory],
   )
   const timeRange = display.length > 0 ? `${display[0].timeString.slice(11, 19)}~${display[display.length - 1].timeString.slice(11, 19)}` : ""
-  return <Section title={`📋 日志浏览 (${entries.length} 条)`}>
+  return <Section header={
+    <HStack
+      spacing={8}
+      alignment="center"
+      alert={{
+        title: "日志显示说明",
+        isPresented: showHelp,
+        message: <Text>默认显示当前监测点与下一个监测点之间的日志，点击重置后显示全部日志</Text>,
+        actions: <Button title="知道了" action={() => showHelp.setValue(false)} />,
+      }}
+    >
+      <Text font="title3" bold>📋 日志浏览 ({entries.length} 条)</Text>
+      <Button
+        title="说明"
+        systemImage="info.circle"
+        labelStyle="iconOnly"
+        action={() => showHelp.setValue(true)}
+      />
+    </HStack>
+  }>
     <ScrollView axes="horizontal" scrollIndicator="never">
       <HStack spacing={8} padding={{ vertical: 6, horizontal: 2 }}>
         {LEVEL_FILTERS.map((item, index) => <FilterChip key={item.key} label={item.label} color={item.color} active={selectedLevel.value === index} onTap={() => selectedLevel.setValue(index)} />)}
