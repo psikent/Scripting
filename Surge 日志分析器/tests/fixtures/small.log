@@ -1,0 +1,7 @@
+2026-07-11 15:33:44.100000 <NOTIFY> [SGLog] Memory usage: 3.14MB (init)
+2026-07-11 15:33:45 <WARNING> [MemoryMonitor] Real Mem: 2048 KB
+2026-07-11 15:33:46.300000 <DEBUG> [CoreEngine] Debug details
+2026-07-11 15:33:47.400000 <BOGUS> [Mystery] Unclassified Payload
+this line has no timestamp and must be ignored
+2026-07-11 15:33:49.600000 <NETWORK-ERROR> [Network] Connection failed
+2026-07-11 15:33:50.700000 <INFO> Search Needle without module
