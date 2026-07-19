@@ -1,1 +1,6 @@
 _cache_log.txt
+package.json
+tests/
+ACCEPTANCE_REPORT.md
+DEVELOPMENT_LOG.md
+MANUAL_TEST_CHECKLIST.md
