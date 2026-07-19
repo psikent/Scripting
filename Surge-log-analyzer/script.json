@@ -1,6 +1,6 @@
 {
   "entry" : "index.tsx",
-  "iconImage" : null,
+  "iconImage" : "https://raw.githubusercontent.com/psikent/Scripting/main/Surge-log-analyzer/icon.png",
   "version" : "1.0.0",
   "icon" : "chart.line.uptrend.xyaxis",
   "runInApp" : true,
