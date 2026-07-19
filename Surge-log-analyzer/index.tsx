@@ -265,7 +265,13 @@ function EmptyState({ onOpenFile }: EmptyStateProps) {
   return <>
     <Section><VStack alignment="center" spacing={16} padding={40}>
       <Text font="largeTitle">📋</Text><Text font="title3">暂无日志数据</Text>
-      <Text font="subheadline">点击“打开文件”，选择需要分析的 Surge 日志</Text>
+      <Text
+        font="subheadline"
+        multilineTextAlignment="center"
+        frame={{ maxWidth: "infinity", alignment: "center" }}
+      >
+        点击“打开文件”，选择需要分析的 Surge 日志
+      </Text>
     </VStack></Section>
     <HStack
       frame={{ maxWidth: "infinity" }}
