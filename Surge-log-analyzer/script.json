@@ -1,0 +1,25 @@
+{
+  "entry" : "index.tsx",
+  "iconImage" : null,
+  "version" : "1.0.0",
+  "icon" : "chart.line.uptrend.xyaxis",
+  "runInApp" : true,
+  "localizedDescriptions" : {
+    "zh" : "分析 Surge 日志，查看内存曲线图和日志详情"
+  },
+  "localizedNames" : {
+    "zh" : "Surge 日志分析器"
+  },
+  "name" : "Surge 日志分析器",
+  "remoteResource" : null,
+  "color" : "rgba(10, 132, 255, 1)",
+  "author" : null,
+  "contributors" : [
+
+  ],
+  "description" : null,
+  "permissions" : [
+    "fileSystem",
+    "cloudSharedData"
+  ]
+}
