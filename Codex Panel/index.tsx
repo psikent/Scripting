@@ -1,0 +1,9 @@
+import { Navigation, Script } from "scripting";
+import { View } from "./page";
+
+(async () => {
+  await Navigation.present({
+    element: <View />,
+    // modalPresentationStyle: "fullScreen",
+  });
+})().finally(Script.exit);

@@ -1,0 +1,45 @@
+{
+  "runInApp" : false,
+  "remoteResource" : {
+    "autoUpdateInterval" : null,
+    "hash" : "e1a2c5a036ecb7519224edc8b066dd27",
+    "url" : "https:\/\/github.com\/ScriptingApp\/Community-Scripts\/raw\/refs\/heads\/main\/Codex Panel.scripting"
+  },
+  "color" : "rgba(0, 198, 165,1)",
+  "name" : "Codex Panel",
+  "description" : null,
+  "intentInputTypes" : [
+
+  ],
+  "entry" : "index.tsx",
+  "iconImage" : null,
+  "icon" : "bolt.fill",
+  "contributors" : [
+
+  ],
+  "version" : null,
+  "localizedNames" : {
+    "fr" : "",
+    "ja" : "",
+    "en" : "",
+    "ru" : "",
+    "zh" : "",
+    "de" : "",
+    "pt" : "",
+    "it" : "",
+    "es" : ""
+  },
+  "author" : null,
+  "localizedDescriptions" : {
+    "de" : "",
+    "pt" : "",
+    "ru" : "",
+    "en" : "",
+    "zh" : "",
+    "fr" : "",
+    "ja" : "",
+    "es" : "",
+    "it" : ""
+  },
+  "permissions" : null
+}
