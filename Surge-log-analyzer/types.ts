@@ -45,6 +45,8 @@ export interface ParseResult {
     max: number
     avg: number
     latest: number
+    minTime: Date
+    maxTime: Date
   }
 }
 

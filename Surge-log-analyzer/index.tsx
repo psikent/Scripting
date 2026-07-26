@@ -2,7 +2,7 @@
  * Surge 日志分析器 - 主界面
  */
 
-import { Script, Navigation, NavigationStack, List, VStack, HStack, Text, ScrollView, TextField, Button, Chart, LineChart, Section, Rectangle, useMemo, useObservable, Slider, Spacer } from "scripting"
+import { Script, Navigation, NavigationStack, List, VStack, HStack, Text, ScrollView, TextField, Button, Chart, LineChart, Section, Rectangle, useMemo, useObservable, useEffect, Slider, Spacer } from "scripting"
 import {
   createDiagnosticCollector,
   ensureICloudFileDownloaded,
@@ -74,12 +74,26 @@ interface MemorySectionProps {
   showAllTime: ObservableValue<boolean>
 }
 
+const MIN_POINT_SPACING = 22
+
 function MemorySection({ memoryPoints, memoryStats, sliderIndex, committedSliderIndex, filePath, showAllTime }: MemorySectionProps) {
   const fmt = (v: number) => v.toFixed(1) + " MB"
   const pointCount = memoryPoints.length
   const idx = Math.min(pointCount - 1, Math.max(0, Math.round(sliderIndex.value)))
   const currentPoint = pointCount > 0 ? memoryPoints[idx] : null
   const crossesDay = pointCount > 1 && !isSameLocalDay(memoryPoints[0].timestamp, memoryPoints[pointCount - 1].timestamp)
+
+  // 横向滚动：根据数据点数量计算图表宽度，保证最小间隔
+  const chartWidth = Math.max(340, pointCount * MIN_POINT_SPACING)
+  const scrollTargetId = useObservable<string>(pointCount > 0 ? "pt-0" : "")
+
+  // 滑块移动时，图表跟随滚动到当前选中点
+  useEffect(() => {
+    if (pointCount > 0 && idx >= 0) {
+      scrollTargetId.setValue(`pt-${idx}`)
+    }
+  }, [idx, pointCount])
+
   const chartMarks = useMemo(() => memoryPoints.map((point, index) => ({
     label: formatChartTime(point.timestamp),
     value: point.value,
@@ -88,24 +102,51 @@ function MemorySection({ memoryPoints, memoryStats, sliderIndex, committedSlider
     symbol: "circle" as const,
     symbolSize: index === idx ? { width: 14, height: 14 } : { width: 5, height: 5 },
   })), [memoryPoints, idx])
+
+  // 用于对齐图表数据点的不可见标记视图
+  const scrollMarkers = useMemo(() => {
+    if (pointCount === 0) return null
+    const markerWidth = chartWidth / pointCount
+    return (
+      <HStack scrollTargetLayout spacing={0}>
+        {memoryPoints.map((_, i) => (
+          <Rectangle key={`pt-${i}`} fill="clear" frame={{ width: markerWidth, height: 0 }} />
+        ))}
+      </HStack>
+    )
+  }, [memoryPoints, chartWidth, pointCount])
+
   return <Section title="📊 内存曲线">
     <VStack spacing={12} padding={{ vertical: 8 }} alignment="leading">
     {filePath ? <HStack spacing={4}><Text font="caption2">📄</Text><Text font="caption2">{filePath}</Text></HStack> : null}
-    <HStack spacing={0} alignment="center" frame={{ maxWidth: "infinity" }}>
-      <StatCell title="当前" value={fmt(memoryStats.latest)} />
-      <StatCell title="最高" value={fmt(memoryStats.max)} />
-      <StatCell title="最低" value={fmt(memoryStats.min)} />
+    <HStack alignment="top" frame={{ maxWidth: "infinity" }}>
+      <Spacer />
+      <StatCell title="最高" value={fmt(memoryStats.max)} subtitle={memoryStats.maxTime.getTime() > 0 ? formatMemoryTime(memoryStats.maxTime, crossesDay, true) : undefined} />
+      <Spacer />
       <StatCell title="平均" value={fmt(memoryStats.avg)} />
+      <Spacer />
+      <StatCell title="最低" value={fmt(memoryStats.min)} subtitle={memoryStats.minTime.getTime() > 0 ? formatMemoryTime(memoryStats.minTime, crossesDay, true) : undefined} />
+      <Spacer />
     </HStack>
-    {memoryPoints.length > 0 ? <Chart
-      frame={{ height: 200 }}
-      chartXAxis={{
-        values: { type: "automatic", desiredCount: 5 },
-        valueLabel: { collisionResolution: "greedy" },
-      }}
+    {memoryPoints.length > 0 ? <ScrollView
+      axes="horizontal"
+      scrollIndicator={{ visibility: "hidden", axes: "horizontal" }}
+      scrollPosition={{ value: scrollTargetId, anchor: "center" }}
     >
-      <LineChart marks={chartMarks} />
-    </Chart> : <VStack alignment="center" padding={20}><Text font="subheadline">未提取到内存数据</Text></VStack>}
+      <VStack>
+        <Chart
+          frame={{ width: chartWidth, height: 200 }}
+          padding={{ top: 8, trailing: 8 }}
+          chartXAxis={{
+            values: { type: "automatic", desiredCount: 5 },
+            valueLabel: { collisionResolution: "greedy" },
+          }}
+        >
+          <LineChart marks={chartMarks} />
+        </Chart>
+        {scrollMarkers}
+      </VStack>
+    </ScrollView> : <VStack alignment="center" padding={20}><Text font="subheadline">未提取到内存数据</Text></VStack>}
     {currentPoint ? <HStack alignment="center" frame={{ maxWidth: "infinity" }} padding={{ vertical: 2 }}><Text font="caption" bold>📍 {formatMemoryTime(currentPoint.timestamp, crossesDay, true)} — {currentPoint.value.toFixed(1)} MB</Text></HStack> : <Text font="caption2" padding={{ vertical: 2 }}>—</Text>}
     {pointCount > 0 && <>
       <Slider
@@ -149,10 +190,11 @@ function formatMemoryTime(date: Date, includeDate: boolean, includeSeconds: bool
 interface StatCellProps {
   title: string
   value: string
+  subtitle?: string
 }
 
-function StatCell({ title, value }: StatCellProps) {
-  return <VStack alignment="center" spacing={3} frame={{ minWidth: 0 }} padding={{ horizontal: 4, vertical: 8 }}><Text font="caption2">{title}</Text><Text font="caption" bold>{value}</Text></VStack>
+function StatCell({ title, value, subtitle }: StatCellProps) {
+  return <VStack alignment="center" spacing={2} frame={{ minWidth: 0 }} padding={{ horizontal: 4, vertical: 6 }}><Text font="caption2">{title}</Text><Text font="caption" bold>{value}</Text>{subtitle ? <Text font="caption2">{subtitle}</Text> : null}</VStack>
 }
 
 interface LogSectionProps {
@@ -160,171 +202,108 @@ interface LogSectionProps {
   memoryPoints: MemoryDataPoint[]
   selectedLevel: ObservableValue<number>
   searchText: ObservableValue<string>
-  sliderIndex: Pick<ObservableValue<number>, "value">
+  sliderIndex: ObservableValue<number>
   showAllTime: ObservableValue<boolean>
 }
 
 function LogSection({ entries, memoryPoints, selectedLevel, searchText, sliderIndex, showAllTime }: LogSectionProps) {
-  // 从左到右严重程度逐渐下降：全部 → ERROR → WARN → NOTICE → INFO → DEBUG → VERBOSE → UNKNOWN
-  const curKey = LEVEL_FILTERS[selectedLevel.value].key
-  const idx = Math.min(memoryPoints.length - 1, Math.max(0, Math.round(sliderIndex.value)))
-  const query = searchText.value
-  const showAll = showAllTime.value
-  const showHelp = useObservable(false)
-  const display = useMemo(
-    () => selectVisibleEntries(entries, memoryPoints, curKey === "ALL" ? null : curKey, query, idx, showAll),
-    [entries, memoryPoints, curKey, query, idx, showAll],
-  )
-  const hasMemory = memoryPoints.length > 0
-  const logRows = useMemo(
-    () => display.map((entry: LogEntry) => <LogRow key={entry.line} entry={entry} showMemory={hasMemory} />),
-    [display, hasMemory],
-  )
-  const timeRange = display.length > 0 ? `${display[0].timeString.slice(11, 19)}~${display[display.length - 1].timeString.slice(11, 19)}` : ""
-  return <Section header={
-    <HStack
-      spacing={8}
-      alignment="center"
-      alert={{
-        title: "日志显示说明",
-        isPresented: showHelp,
-        message: <Text>默认显示当前监测点与下一个监测点之间的日志，点击重置后显示全部日志</Text>,
-        actions: <Button title="知道了" action={() => showHelp.setValue(false)} />,
-      }}
-    >
-      <Text font="title3" bold>📋 日志浏览 ({entries.length} 条)</Text>
-      <Button
-        title="说明"
-        systemImage="info.circle"
-        labelStyle="iconOnly"
-        action={() => showHelp.setValue(true)}
+  const levelKey = LEVEL_ORDER[selectedLevel.value] ?? "ALL"
+  const visible = selectVisibleEntries(entries, memoryPoints, levelKey === "ALL" ? null : levelKey, searchText.value, sliderIndex.value, showAllTime.value)
+
+  return <Section title={`📋 日志浏览 (${entries.length} 条)`}>
+    <VStack spacing={12} padding={{ vertical: 8 }}>
+      {/* 级别筛选按钮 */}
+      <ScrollView axes="horizontal" scrollIndicator={{ visibility: "hidden", axes: "horizontal" }}>
+        <HStack spacing={6}>
+          {LEVEL_FILTERS.map((item, index) => (
+            <Button
+              key={item.key}
+              title={item.label}
+              action={() => selectedLevel.setValue(index)}
+              controlSize="small"
+              tint={selectedLevel.value === index ? item.color : "#3A3A3C"}
+            />
+          ))}
+        </HStack>
+      </ScrollView>
+
+      {/* 搜索框 */}
+      <TextField
+        value={searchText.value}
+        placeholder="搜索日志内容或模块名..."
+        onChanged={value => searchText.setValue(value)}
+        clearButtonMode="whileEditing"
       />
-    </HStack>
-  }>
-    <ScrollView axes="horizontal" scrollIndicator="never">
-      <HStack spacing={8} padding={{ vertical: 6, horizontal: 2 }}>
-        {LEVEL_FILTERS.map((item, index) => <FilterChip key={item.key} label={item.label} color={item.color} active={selectedLevel.value === index} onTap={() => selectedLevel.setValue(index)} />)}
-      </HStack>
-    </ScrollView>
-    <TextField title="搜索" value={searchText.value} onChanged={v => searchText.setValue(v)} prompt="搜索日志内容或模块名..." />
-    <HStack spacing={12} padding={{ vertical: 2 }}>
-      <Text font="caption2">显示 {display.length} / {entries.length} 条</Text>
-      {timeRange ? <Text font="caption2">⏱ {timeRange}</Text> : null}
-      {searchText.value ? <Text font="caption2">搜索: "{searchText.value}"</Text> : null}
-      {hasMemory ? <Spacer /> : null}
-      {hasMemory ? <Button title={showAllTime.value ? "按时段" : "重置"} action={() => showAllTime.setValue(!showAllTime.value)} /> : null}
-    </HStack>
-    {display.length === 0
-      ? <VStack alignment="center" padding={20}><Text font="subheadline">无匹配日志</Text></VStack>
-      : logRows}
+
+      {/* 日志列表 */}
+      {visible.entries.length > 0 ? (
+        <>
+          <Section>
+            {visible.entries.map(entry => (
+              <LogRow key={entry.line} entry={entry} />
+            ))}
+          </Section>
+          <HStack frame={{ maxWidth: "infinity" }}>
+            <Text font="caption2">显示 {visible.entries.length} / {entries.length} 条</Text>
+            <Spacer />
+            <Text font="caption2">{visible.startTime} - {visible.endTime}</Text>
+            <Spacer />
+            <Button title="重置" action={() => { selectedLevel.setValue(0); searchText.setValue(""); sliderIndex.setValue(0); showAllTime.setValue(false) }} controlSize="small" />
+          </HStack>
+        </>
+      ) : (
+        <VStack alignment="center" padding={20}>
+          <Text font="subheadline">没有匹配的日志条目</Text>
+          <Text font="caption2" multilineTextAlignment="center" frame={{ maxWidth: "infinity" }} padding={{ top: 4 }}>
+            尝试调整筛选条件或搜索关键词
+          </Text>
+        </VStack>
+      )}
+    </VStack>
   </Section>
-}
-
-interface FilterChipProps {
-  label: string
-  active: boolean
-  color: string
-  onTap: () => void
-}
-
-function FilterChip({ label, active, color, onTap }: FilterChipProps) {
-  return (
-    <Text
-      font="caption"
-      bold
-      padding={{ horizontal: 10, vertical: 5 }}
-      onTapGesture={onTap}
-    >
-      {active ? `● ${label}` : `○ ${label}`}
-    </Text>
-  )
 }
 
 interface LogRowProps {
   entry: LogEntry
-  showMemory: boolean
 }
 
-function LogRow({ entry, showMemory }: LogRowProps) {
-  return <VStack alignment="leading" spacing={2} padding={{ horizontal: 0, vertical: 6 }} listRowSeparator="hidden">
-    <HStack spacing={6}>
-      <Text font="caption2" bold>[{LOG_LEVEL_CONFIG[entry.level].label}]</Text>
-      <Text font="caption2">{entry.timeString.slice(11, 19)}</Text>
-      {entry.module ? <Text font="caption2">{entry.module}</Text> : null}
-      {showMemory && entry.memoryMB !== undefined ? <Text font="caption2" bold>{entry.memoryMB.toFixed(1)}MB</Text> : null}
-    </HStack>
-    <Text font="caption">{entry.message}</Text>
-  </VStack>
+const LOG_DATE_STYLES: Record<string, { color: string; weight: string }> = {
+  ERROR:   { color: "#FF3B30", weight: "bold" },
+  WARN:    { color: "#FF9500", weight: "bold" },
+  NOTICE:  { color: "#34C759", weight: "regular" },
+  INFO:    { color: "#007AFF", weight: "regular" },
+  DEBUG:   { color: "#5AC8FA", weight: "regular" },
+  VERBOSE: { color: "#AF52DE", weight: "regular" },
+  UNKNOWN: { color: "#8E8E93", weight: "regular" },
 }
 
-interface EmptyStateProps {
-  onOpenFile: () => void | Promise<void>
+function LogRow({ entry }: LogRowProps) {
+  const style = LOG_DATE_STYLES[entry.level] ?? LOG_DATE_STYLES.UNKNOWN
+  return (
+    <VStack alignment="leading" spacing={2} padding={{ vertical: 4 }} frame={{ maxWidth: "infinity" }}>
+      <HStack spacing={6}>
+        <Text font="caption2" foregroundStyle={{ color: style.color }}>{entry.timeString}</Text>
+        <Text font="caption2" bold foregroundStyle={{ color: style.color }}>{entry.level}</Text>
+        {entry.module ? <Text font="caption2" foregroundStyle={{ color: "#8E8E93" }}>[{entry.module}]</Text> : null}
+      </HStack>
+      <Text font="caption" foregroundStyle={{ color: "#FFFFFF" }}>{entry.message}</Text>
+    </VStack>
+  )
 }
 
-function EmptyState({ onOpenFile }: EmptyStateProps) {
-  return <>
-    <Section><VStack alignment="center" spacing={16} padding={40}>
-      <Text font="largeTitle">📋</Text><Text font="title3">暂无日志数据</Text>
-      <Text
-        font="subheadline"
-        multilineTextAlignment="center"
-        frame={{ maxWidth: "infinity", alignment: "center" }}
-      >
-        点击“打开文件”，选择需要分析的 Surge 日志
-      </Text>
-    </VStack></Section>
-    <HStack
-      frame={{ maxWidth: "infinity" }}
-      listRowBackground={<Rectangle fill="rgba(0,0,0,0)" />}
-      listRowSeparator="hidden"
-    >
-      <Button
-        buttonStyle="borderedProminent"
-        buttonBorderShape={{ roundedRectangleRadius: 14 }}
-        controlSize="large"
-        frame={{ maxWidth: "infinity" }}
-        action={onOpenFile}
-      >
-        <HStack frame={{ maxWidth: "infinity", minHeight: 52 }} alignment="center">
-          <Spacer />
-          <Text font="headline">打开文件</Text>
-          <Spacer />
-        </HStack>
-      </Button>
-    </HStack>
-  </>
+function EmptyState({ onOpenFile }: { onOpenFile: () => void }) {
+  return (
+    <Section>
+      <VStack alignment="center" spacing={12} padding={{ top: 80, bottom: 40 }}>
+        <Text font="largeTitle">📂</Text>
+        <Text font="title3" bold>Surge 日志分析器</Text>
+        <Text font="subheadline" multilineTextAlignment="center" frame={{ maxWidth: "infinity" }}>
+          选择 Surge 日志文件开始分析{"\n"}支持内存曲线、模块分布和详细日志浏览
+        </Text>
+        <Button title="选择日志文件" systemImage="folder" action={onOpenFile} controlSize="regular" tint="#007AFF" />
+      </VStack>
+    </Section>
+  )
 }
 
-// ── 数据加载 ──
-
-async function readFileText(path: string): Promise<string> {
-  const ready = await ensureICloudFileDownloaded(path, {
-    isStoredIniCloud: filePath => FileManager.isFileStoredIniCloud(filePath),
-    isDownloaded: filePath => FileManager.isiCloudFileDownloaded(filePath),
-    download: filePath => FileManager.downloadFileFromiCloud(filePath),
-  }, APP_DIAGNOSTICS)
-  if (!ready) throw new Error("iCloud file is unavailable")
-  return FileManager.readAsString(path)
-}
-
-function tryReadFile(path: string): Promise<string | null> {
-  return readNonEmptyTextAsync(path, readFileText, APP_DIAGNOSTICS)
-}
-
-function stopAccessingDocumentPickerResources(operation: string): void {
-  try {
-    DocumentPicker.stopAcessingSecurityScopedResources()
-  } catch (error) {
-    APP_DIAGNOSTICS.capture(`release security-scoped resources: ${operation}`, error)
-  }
-}
-
-async function run() {
-  try {
-    await Navigation.present({ element: <App /> })
-  } finally {
-    Script.exit()
-  }
-}
-
-run()
+Script.open({ widgetName: undefined, family: undefined }, () => <App />)

@@ -71,6 +71,12 @@ export function parseLog(logText: string): ParseResult {
     a.timestamp.getTime() - b.timestamp.getTime() || a.sourceLine - b.sourceLine
   )
   const memValues = memoryPoints.map(p => p.value)
+  let minPoint = memoryPoints[0]
+  let maxPoint = memoryPoints[0]
+  for (const p of memoryPoints) {
+    if (p.value < minPoint.value) minPoint = p
+    if (p.value > maxPoint.value) maxPoint = p
+  }
   return {
     entries,
     memoryPoints,
@@ -78,12 +84,14 @@ export function parseLog(logText: string): ParseResult {
     parsedAt: new Date(),
     memoryStats: memValues.length > 0
       ? {
-          min: round(memValues.reduce((a, b) => Math.min(a, b))),
-          max: round(memValues.reduce((a, b) => Math.max(a, b))),
+          min: round(minPoint.value),
+          max: round(maxPoint.value),
           avg: round(memValues.reduce((a, b) => a + b, 0) / memValues.length),
           latest: round(memValues[memValues.length - 1]),
+          minTime: minPoint.timestamp,
+          maxTime: maxPoint.timestamp,
         }
-      : { min: 0, max: 0, avg: 0, latest: 0 },
+      : { min: 0, max: 0, avg: 0, latest: 0, minTime: new Date(0), maxTime: new Date(0) },
   }
 }
 
@@ -199,35 +207,67 @@ export function selectVisibleEntries(
   query: string,
   selectedPointIndex: number,
   showAllTime: boolean,
-): LogEntry[] {
-  let filtered = level ? filterByLevel(entries, level) : entries
-  filtered = searchEntries(filtered, query)
-  if (memoryPoints.length > 0 && !showAllTime) {
-    const index = Math.min(memoryPoints.length - 1, Math.max(0, Math.round(selectedPointIndex)))
-    const fromMs = memoryPoints[index].timestamp.getTime()
-    let nextIndex = index + 1
-    while (nextIndex < memoryPoints.length && memoryPoints[nextIndex].timestamp.getTime() <= fromMs) {
-      nextIndex += 1
-    }
-    const from = memoryPoints[index].timestamp
-    const to = nextIndex < memoryPoints.length
-      ? memoryPoints[nextIndex].timestamp
-      : new Date(8640000000000000)
-    filtered = filtered.filter(entry => entry.timestamp >= from && entry.timestamp < to)
+): { entries: LogEntry[]; startTime: string; endTime: string } {
+  let filtered = entries
+
+  // 级别筛选
+  if (level) {
+    filtered = filterByLevel(filtered, level)
   }
-  return filtered
+
+  // 搜索
+  if (query.trim()) {
+    filtered = searchEntries(filtered, query)
+  }
+
+  // 时间范围筛选（根据选中的数据点）
+  if (!showAllTime && memoryPoints.length > 0) {
+    const idx = Math.min(memoryPoints.length - 1, Math.max(0, Math.round(selectedPointIndex)))
+    const selectedPoint = memoryPoints[idx]
+    if (selectedPoint) {
+      // 找到相邻两个数据点之间的时间范围
+      let startTime: Date
+      let endTime: Date
+      if (idx === 0) {
+        startTime = selectedPoint.timestamp
+        endTime = memoryPoints.length > 1 ? new Date((selectedPoint.timestamp.getTime() + memoryPoints[1].timestamp.getTime()) / 2) : selectedPoint.timestamp
+      } else if (idx === memoryPoints.length - 1) {
+        startTime = new Date((memoryPoints[idx - 1].timestamp.getTime() + selectedPoint.timestamp.getTime()) / 2)
+        endTime = selectedPoint.timestamp
+      } else {
+        startTime = new Date((memoryPoints[idx - 1].timestamp.getTime() + selectedPoint.timestamp.getTime()) / 2)
+        endTime = new Date((selectedPoint.timestamp.getTime() + memoryPoints[idx + 1].timestamp.getTime()) / 2)
+      }
+      filtered = filtered.filter(e => e.timestamp >= startTime && e.timestamp <= endTime)
+    }
+  }
+
+  const pad = (v: number) => v.toString().padStart(2, "0")
+  const formatTime = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  
+  let startTime = "--:--:--"
+  let endTime = "--:--:--"
+  if (filtered.length > 0) {
+    const sorted = [...filtered].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime() || a.line - b.line)
+    startTime = formatTime(sorted[0].timestamp)
+    endTime = formatTime(sorted[sorted.length - 1].timestamp)
+  }
+
+  return { entries: filtered, startTime, endTime }
 }
 
-function cachedSearchText(entry: LogEntry): SearchTextCacheEntry {
-  const cached = SEARCH_TEXT_CACHE.get(entry)
-  if (cached && cached.message === entry.message && cached.module === entry.module) return cached
+// ── 搜索缓存 ──
 
-  const searchText: SearchTextCacheEntry = {
-    message: entry.message,
-    module: entry.module,
-    messageLower: entry.message.toLowerCase(),
-    moduleLower: entry.module?.toLowerCase(),
+function cachedSearchText(entry: LogEntry): SearchTextCacheEntry {
+  let cached = SEARCH_TEXT_CACHE.get(entry)
+  if (!cached) {
+    cached = {
+      message: entry.message,
+      module: entry.module,
+      messageLower: entry.message.toLowerCase(),
+      moduleLower: entry.module?.toLowerCase(),
+    }
+    SEARCH_TEXT_CACHE.set(entry, cached)
   }
-  SEARCH_TEXT_CACHE.set(entry, searchText)
-  return searchText
+  return cached
 }
