@@ -14,6 +14,7 @@ import {
   insertStandaloneCommentBeforeFirstRule,
   isRejectPolicy,
   isStandaloneComment,
+  normalizeInlineComment,
   normalizeStandaloneComment,
   parseFile,
   parseRuleLine,
@@ -114,7 +115,7 @@ test('adds pre-matching before no-resolve to IP REJECT rules', () => {
   assert.equal(
     applyPolicy(ipv6, 'REJECT-TINYGIF').trailing,
     ',REJECT-TINYGIF,pre-matching,no-resolve',
-  )
+  ))
 })
 
 test('deduplicates generated modifiers and keeps candidate IDs deterministic', () => {
@@ -150,6 +151,20 @@ test('normalizes standalone comments and rejects multiline input', () => {
   assert.equal(normalizeStandaloneComment('中文 🚀'), '# 中文 🚀')
   assert.equal(normalizeStandaloneComment('  # 已有前缀  '), '# 已有前缀')
   assert.throws(() => normalizeStandaloneComment('# 第一行\n第二行'), /仅支持单行/)
+})
+
+test('normalizes inline comments with auto // prefix and drops empty prefixes', () => {
+  // 编辑界面预填 // 后直接保存（未输入内容）视为无注释
+  assert.equal(normalizeInlineComment('// '), '')
+  assert.equal(normalizeInlineComment('//'), '')
+  assert.equal(normalizeInlineComment('//  '), '')
+  assert.equal(normalizeInlineComment('   '), '')
+  assert.equal(normalizeInlineComment(''), '')
+  // 输入内容自动补 // 前缀，已有 // 原样保留
+  assert.equal(normalizeInlineComment('备注'), '// 备注')
+  assert.equal(normalizeInlineComment('小红书阻断 QUIC'), '// 小红书阻断 QUIC')
+  assert.equal(normalizeInlineComment('// 磨题帮广告'), '// 磨题帮广告')
+  assert.equal(normalizeInlineComment('// Added for: https://a.com'), '// Added for: https://a.com')
 })
 
 test('creates and inserts comments immediately before the first actual rule', () => {
