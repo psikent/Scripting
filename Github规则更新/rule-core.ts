@@ -306,7 +306,7 @@ function normalizeHost(value: string): ExtractedAddress | null {
     if (rest && !/^:\d{1,5}$/.test(rest)) return null
     host = host.slice(1, closing)
   } else {
-    const portMatch = host.match(/^(.+):(\d{1,5})$/')
+    const portMatch = host.match(/^(.+):(\d{1,5})$/) 
     if (portMatch && !portMatch[1].includes(':')) host = portMatch[1]
   }
 
