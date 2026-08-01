@@ -6,6 +6,7 @@ import {
   Button,
   Text,
   Picker,
+  Toggle,
   ForEach,
   HStack,
   VStack,
@@ -25,10 +26,14 @@ import {
 import {
   ALL_TYPES,
   RAW_TYPE,
+  RULE_PARAM_OPTIONS,
   ParsedFile,
   Rule,
   RuleStatus,
+  composeTrailing,
   createStandaloneComment,
+  defaultRuleParams,
+  firstPolicyOf,
   formatRule,
   insertStandaloneCommentBeforeFirstRule,
   insertRuleAtStart,
@@ -39,7 +44,9 @@ import {
   parseFile,
   parseTrailingPolicy,
   serializeFile,
+  setTrailingParam,
   setTrailingPolicy,
+  trailingParams,
 } from './rule-core'
 import {
   Config,
@@ -485,13 +492,41 @@ function RuleEditorView({
 }) {
   const type = useObservable(rule.type === RAW_TYPE ? '' : rule.type)
   const value = useObservable(rule.value)
-  const trailing = useObservable(rule.trailing)
+  // 新增规则时按类型预填默认参数（如 DOMAIN-SUFFIX → ,extended-matching）；编辑已有规则保持原值
+  const trailing = useObservable(
+    rule.status === 'added' && !rule.trailing
+      ? composeTrailing('', defaultRuleParams(rule.type === RAW_TYPE ? '' : rule.type, ''))
+      : rule.trailing,
+  )
   // 行内注释预填 //（无注释时），保存时由 normalizeInlineComment 清理空前缀
   const comment = useObservable(rule.comment || '// ')
   // 配置页预置的策略（如 Proxy、DIRECT），用于 Picker 快速选择
   const policies = getConfig().policies
   const currentPolicy = parseTrailingPolicy(trailing.value, policies)
+  // 规则参数勾选状态（从 trailing 实时派生）
+  const currentParams = trailingParams(trailing.value)
   const error = useObservable('')
+
+  // 类型变化：参数重置为该类型 + 当前策略的默认集
+  const applyTypeChange = (t: string) => {
+    type.setValue(t)
+    const policy = firstPolicyOf(trailing.value)
+    trailing.setValue(composeTrailing(policy, defaultRuleParams(t, policy)))
+  }
+
+  // 策略变化：选「无」只移除策略（参数保留、清掉多余逗号）；选策略则重置参数为默认集
+  const applyPolicyChange = (v: string) => {
+    if (!v) {
+      trailing.setValue(setTrailingPolicy(trailing.value, '', policies))
+      return
+    }
+    trailing.setValue(composeTrailing(v, defaultRuleParams(type.value, v)))
+  }
+
+  // 勾选/取消规则参数
+  const toggleParam = (param: string, on: boolean) => {
+    trailing.setValue(setTrailingParam(trailing.value, param, on))
+  }
 
   const save = () => {
     const t = type.value.trim().toUpperCase()
@@ -535,7 +570,7 @@ function RuleEditorView({
           <Picker
             title="从已有类型选择"
             value={type.value}
-            onChanged={(v: string) => { if (v) type.setValue(v) }}
+            onChanged={(v: string) => { if (v) applyTypeChange(v) }}
             pickerStyle="menu"
           >
             <Text tag="">— 选择 —</Text>
@@ -565,7 +600,7 @@ function RuleEditorView({
           <Picker
             title="从预置策略选择"
             value={currentPolicy}
-            onChanged={(v: string) => { trailing.setValue(setTrailingPolicy(trailing.value, v, policies)) }}
+            onChanged={applyPolicyChange}
             pickerStyle="menu"
           >
             <Text tag="">— 无 —</Text>
@@ -575,6 +610,17 @@ function RuleEditorView({
           </Picker>
         ) : null}
         <TextField title="策略" value={trailing} prompt=",Proxy,no-resolve" autocorrectionDisabled textInputAutocapitalization="never" />
+      </Section>
+
+      <Section header={<Text>规则参数</Text>} footer={<Text>勾选后写入规则尾部；策略选择与类型切换时会按默认组合自动勾选。</Text>}>
+        {RULE_PARAM_OPTIONS.map(param => (
+          <Toggle
+            key={param}
+            title={param}
+            value={currentParams.includes(param)}
+            onChanged={(on: boolean) => toggleParam(param, on)}
+          />
+        ))}
       </Section>
 
       <Section header={<Text>注释（可选）</Text>}>
