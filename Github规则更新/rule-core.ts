@@ -306,7 +306,7 @@ function normalizeHost(value: string): ExtractedAddress | null {
     if (rest && !/^:\d{1,5}$/.test(rest)) return null
     host = host.slice(1, closing)
   } else {
-    const portMatch = host.match(/^(.+):(\d{1,5})$/)
+    const portMatch = host.match(/^(.+):(\d{1,5})$/')
     if (portMatch && !portMatch[1].includes(':')) host = portMatch[1]
   }
 
@@ -370,6 +370,45 @@ export function buildRuleCandidates(address: ExtractedAddress | null): RuleCandi
 
 export function isRejectPolicy(policy: string): boolean {
   return REJECT_POLICIES.has(policy.trim())
+}
+
+/** 参数名是否属于「策略」：预置策略或内置 REJECT 系列 */
+function isPolicyName(parameter: string, knownPolicies: string[]): boolean {
+  return knownPolicies.includes(parameter) || isRejectPolicy(parameter)
+}
+
+/**
+ * 从 trailing（如 `,Proxy,no-resolve`）中解析当前策略：
+ * 取第一个参数，仅当它出现在 knownPolicies（预置策略）中才视为策略，否则返回 ''。
+ * （REJECT 等内置策略不在预置列表时也返回 ''，Picker 显示「无」。）
+ */
+export function parseTrailingPolicy(trailing: string, knownPolicies: string[]): string {
+  const first = trailing
+    .split(',')
+    .map(parameter => parameter.trim())
+    .find(Boolean) ?? ''
+  return knownPolicies.includes(first) ? first : ''
+}
+
+/**
+ * 设置/清除 trailing 中的策略名，保留其余参数（如 no-resolve）。
+ * policy 为空表示选择「无」：仅当首个参数是已知策略时移除它。
+ */
+export function setTrailingPolicy(trailing: string, policy: string, knownPolicies: string[]): string {
+  const params = trailing
+    .split(',')
+    .map(parameter => parameter.trim())
+    .filter(Boolean)
+  const current = params[0] && isPolicyName(params[0], knownPolicies) ? params[0] : null
+  if (!policy) {
+    return current ? `,${params.slice(1).join(',')}` : trailing
+  }
+  if (current) {
+    params[0] = policy
+  } else {
+    params.unshift(policy)
+  }
+  return `,${params.join(',')}`
 }
 
 function trailingParameters(trailing: string): string[] {
