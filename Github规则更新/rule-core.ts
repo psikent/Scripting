@@ -94,18 +94,12 @@ export function parseRuleLine(
   let body = raw
   let comment = ''
 
-  // 行内注释标记：# 或 //（// 前必须是行首或空白，避免误伤 https:// 等）
-  let markerIndex = raw.indexOf('#')
-  if (!(markerIndex > 0 && /\S/.test(raw.slice(0, markerIndex)))) markerIndex = -1
+  // 行内注释仅识别 //（// 前必须是行首或空白，避免误伤 https:// 等）
   const slashMatch = raw.match(/(?:^|\s)\/\//)
   if (slashMatch) {
     const slashIndex = slashMatch.index! + (slashMatch[0].startsWith('//') ? 0 : 1)
-    if (markerIndex < 0 || slashIndex < markerIndex) markerIndex = slashIndex
-  }
-
-  if (markerIndex >= 0) {
-    body = raw.slice(0, markerIndex).trimEnd()
-    comment = raw.slice(markerIndex)
+    body = raw.slice(0, slashIndex).trimEnd()
+    comment = raw.slice(slashIndex)
   }
 
   const parts = body.split(',')
