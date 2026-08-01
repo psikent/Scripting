@@ -2,13 +2,17 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  RULE_PARAM_OPTIONS,
   applyPolicy,
   buildRuleCandidates,
   candidateToRule,
+  composeTrailing,
   createStandaloneComment,
+  defaultRuleParams,
   extractFirstAddress,
   findDuplicateRule,
   findFirstActualRuleIndex,
+  firstPolicyOf,
   insertAsFirstRule,
   insertRuleAtStart,
   insertStandaloneCommentBeforeFirstRule,
@@ -20,7 +24,9 @@ import {
   parseRuleLine,
   parseTrailingPolicy,
   serializeFile,
+  setTrailingParam,
   setTrailingPolicy,
+  trailingParams,
 } from '../rule-core.ts'
 
 test('generates the screenshot domain candidates and selects exact domain first', () => {
@@ -428,10 +434,70 @@ test('sets the policy while keeping other trailing parameters', () => {
   assert.equal(setTrailingPolicy(',no-resolve', 'Proxy', policies), ',Proxy,no-resolve')
   // 已有策略 -> 替换策略，保留参数
   assert.equal(setTrailingPolicy(',Proxy,no-resolve', 'DIRECT', policies), ',DIRECT,no-resolve')
-  // 选择「无」-> 移除已知策略，保留参数
+  // 选择「无」-> 移除策略，保留参数
   assert.equal(setTrailingPolicy(',Proxy,no-resolve', '', policies), ',no-resolve')
-  // 选择「无」但首个参数不是已知策略 -> 原样保留
+  // 选择「无」但首个参数不是策略（是规则参数）-> 原样保留
   assert.equal(setTrailingPolicy(',no-resolve', '', policies), ',no-resolve')
+  // 选择「无」且无参数残留 -> 连逗号一起去掉
+  assert.equal(setTrailingPolicy(',Proxy', '', policies), '')
+  assert.equal(setTrailingPolicy(',', '', policies), '')
+  // 手输策略（不在预置列表）也能被移除
+  assert.equal(setTrailingPolicy(',MyGroup', '', policies), '')
+  assert.equal(setTrailingPolicy(',REJECT,pre-matching', '', policies), ',pre-matching')
   // 手输策略不在预置列表中也视为当前策略被替换
   assert.equal(setTrailingPolicy(',REJECT,pre-matching', 'Proxy', policies), ',Proxy,pre-matching')
+})
+
+test('rule param defaults follow type and policy rules', () => {
+  // DOMAIN 系列 -> extended-matching
+  assert.deepEqual(defaultRuleParams('DOMAIN', ''), ['extended-matching'])
+  assert.deepEqual(defaultRuleParams('DOMAIN-SUFFIX', 'Proxy'), ['extended-matching'])
+  assert.deepEqual(defaultRuleParams('DOMAIN-KEYWORD', 'DIRECT'), ['extended-matching'])
+  // REJECT 系列 -> 加 pre-matching
+  assert.deepEqual(defaultRuleParams('DOMAIN-SUFFIX', 'REJECT'), ['pre-matching', 'extended-matching'])
+  assert.deepEqual(defaultRuleParams('DOMAIN', 'REJECT-DROP'), ['pre-matching', 'extended-matching'])
+  // IP-CIDR 系列 -> no-resolve
+  assert.deepEqual(defaultRuleParams('IP-CIDR', ''), ['no-resolve'])
+  assert.deepEqual(defaultRuleParams('IP-CIDR6', 'Proxy'), ['no-resolve'])
+  assert.deepEqual(defaultRuleParams('IP-CIDR', 'REJECT'), ['pre-matching', 'no-resolve'])
+  // 其他类型
+  assert.deepEqual(defaultRuleParams('GEOIP', ''), [])
+  assert.deepEqual(defaultRuleParams('GEOIP', 'REJECT'), ['pre-matching'])
+})
+
+test('composes and parses trailing with policy and params', () => {
+  assert.equal(composeTrailing('', []), '')
+  assert.equal(composeTrailing('', ['extended-matching']), ',extended-matching')
+  assert.equal(composeTrailing('Proxy', ['extended-matching']), ',Proxy,extended-matching')
+  assert.equal(composeTrailing('REJECT', ['pre-matching', 'extended-matching']), ',REJECT,pre-matching,extended-matching')
+  assert.equal(composeTrailing('Proxy', []), ',Proxy')
+
+  assert.deepEqual(trailingParams(',Proxy,no-resolve'), ['Proxy', 'no-resolve'])
+  assert.deepEqual(trailingParams(''), [])
+  assert.deepEqual(trailingParams(' , DIRECT , no-resolve '), ['DIRECT', 'no-resolve'])
+  assert.equal(firstPolicyOf(',Proxy,no-resolve'), 'Proxy')
+  assert.equal(firstPolicyOf(',REJECT,pre-matching'), 'REJECT')
+  assert.equal(firstPolicyOf(',MyGroup'), 'MyGroup')
+  assert.equal(firstPolicyOf(',no-resolve'), '')
+  assert.equal(firstPolicyOf(',pre-matching,extended-matching'), '')
+  assert.equal(firstPolicyOf(''), '')
+})
+
+test('toggles rule params without touching the policy', () => {
+  // 勾选追加
+  assert.equal(setTrailingParam(',Proxy', 'extended-matching', true), ',Proxy,extended-matching')
+  // 已勾选不重复
+  assert.equal(setTrailingParam(',Proxy,extended-matching', 'extended-matching', true), ',Proxy,extended-matching')
+  // 取消移除
+  assert.equal(setTrailingParam(',Proxy,extended-matching,no-resolve', 'extended-matching', false), ',Proxy,no-resolve')
+  // 全部取消 -> 空（无逗号）
+  assert.equal(setTrailingParam(',Proxy,no-resolve', 'no-resolve', false), ',Proxy')
+  // 取消不存在的参数 -> 不变
+  assert.equal(setTrailingParam(',Proxy', 'extended-matching', false), ',Proxy')
+  assert.equal(setTrailingParam(',no-resolve', 'no-resolve', false), '')
+  assert.equal(setTrailingParam('', 'extended-matching', true), ',extended-matching')
+})
+
+test('rule param options are the three toggle choices', () => {
+  assert.deepEqual([...RULE_PARAM_OPTIONS], ['pre-matching', 'extended-matching', 'no-resolve'])
 })
