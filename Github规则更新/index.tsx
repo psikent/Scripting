@@ -34,6 +34,7 @@ import {
   insertRuleAtStart,
   isStandaloneComment,
   newId,
+  normalizeInlineComment,
   normalizeStandaloneComment,
   parseFile,
   serializeFile,
@@ -483,7 +484,8 @@ function RuleEditorView({
   const type = useObservable(rule.type === RAW_TYPE ? '' : rule.type)
   const value = useObservable(rule.value)
   const trailing = useObservable(rule.trailing)
-  const comment = useObservable(rule.comment)
+  // 行内注释预填 //（无注释时），保存时由 normalizeInlineComment 清理空前缀
+  const comment = useObservable(rule.comment || '// ')
   const error = useObservable('')
 
   const save = () => {
@@ -499,9 +501,7 @@ function RuleEditorView({
     }
     let tr = trailing.value.trim()
     if (tr && !tr.startsWith(',')) tr = ',' + tr
-    let cm = comment.value.trim()
-    if (cm && !cm.startsWith('//')) cm = '// ' + cm
-    onSave({ ...rule, type: t, value: v, trailing: tr, comment: cm })
+    onSave({ ...rule, type: t, value: v, trailing: tr, comment: normalizeInlineComment(comment.value) })
   }
 
   return (
