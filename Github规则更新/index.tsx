@@ -500,7 +500,7 @@ function RuleEditorView({
     let tr = trailing.value.trim()
     if (tr && !tr.startsWith(',')) tr = ',' + tr
     let cm = comment.value.trim()
-    if (cm && !cm.startsWith('#') && !cm.startsWith('//')) cm = '# ' + cm
+    if (cm && !cm.startsWith('//')) cm = '// ' + cm
     onSave({ ...rule, type: t, value: v, trailing: tr, comment: cm })
   }
 
@@ -560,7 +560,7 @@ function RuleEditorView({
       </Section>
 
       <Section header={<Text>注释（可选）</Text>}>
-        <TextField title="注释" value={comment} prompt="# 备注" autocorrectionDisabled textInputAutocapitalization="never" />
+        <TextField title="注释" value={comment} prompt="// 备注" autocorrectionDisabled textInputAutocapitalization="never" />
       </Section>
 
       {onDelete ? (
@@ -992,6 +992,7 @@ function EditorView({
             <NavigationStack>
               {editRule.type === RAW_TYPE && isStandaloneComment(editRule.value) ? (
                 <CommentEditorView
+                  key={editRule.id}
                   rule={editRule}
                   title="编辑注释"
                   onSave={saveEdit}
@@ -1000,6 +1001,7 @@ function EditorView({
                 />
               ) : (
                 <RuleEditorView
+                  key={editRule.id}
                   rule={editRule}
                   title="编辑规则"
                   knownTypes={distinctTypes}
@@ -1019,6 +1021,7 @@ function EditorView({
             <NavigationStack>
               {draftRule.value.type === RAW_TYPE ? (
                 <CommentEditorView
+                  key={draftRule.value.id}
                   rule={draftRule.value}
                   title="新增注释"
                   onSave={saveDraft}
@@ -1026,6 +1029,7 @@ function EditorView({
                 />
               ) : (
                 <RuleEditorView
+                  key={draftRule.value.id}
                   rule={draftRule.value}
                   title="新增规则"
                   knownTypes={distinctTypes}
