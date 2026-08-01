@@ -18,7 +18,9 @@ import {
   normalizeStandaloneComment,
   parseFile,
   parseRuleLine,
+  parseTrailingPolicy,
   serializeFile,
+  setTrailingPolicy,
 } from '../rule-core.ts'
 
 test('generates the screenshot domain candidates and selects exact domain first', () => {
@@ -115,7 +117,7 @@ test('adds pre-matching before no-resolve to IP REJECT rules', () => {
   assert.equal(
     applyPolicy(ipv6, 'REJECT-TINYGIF').trailing,
     ',REJECT-TINYGIF,pre-matching,no-resolve',
-  ))
+  )
 })
 
 test('deduplicates generated modifiers and keeps candidate IDs deterministic', () => {
@@ -405,4 +407,31 @@ test('hides #! metadata and only adds a blank boundary for newly added comments'
   const plain = '[Rule]\n#\n# REJECT\n\n#\nDOMAIN,example.com\n'
   const parsedPlain = parseFile(plain)
   assert.equal(serializeFile(parsedPlain, parsedPlain.rules), plain)
+})
+
+test('parses the current policy from trailing using known policies', () => {
+  const policies = ['Proxy', 'DIRECT', '🚀 节点选择']
+  assert.equal(parseTrailingPolicy(',Proxy,no-resolve', policies), 'Proxy')
+  assert.equal(parseTrailingPolicy(',no-resolve', policies), '')
+  assert.equal(parseTrailingPolicy('', policies), '')
+  // 手输的未知策略不算已知策略（Picker 显示为「无」）
+  assert.equal(parseTrailingPolicy(',REJECT,pre-matching', policies), '')
+  // 参数带空格时也能解析
+  assert.equal(parseTrailingPolicy(' , DIRECT , no-resolve ', policies), 'DIRECT')
+})
+
+test('sets the policy while keeping other trailing parameters', () => {
+  const policies = ['Proxy', 'DIRECT']
+  // 无策略无参数 -> 插入策略
+  assert.equal(setTrailingPolicy('', 'Proxy', policies), ',Proxy')
+  // 已有参数 -> 策略插到最前
+  assert.equal(setTrailingPolicy(',no-resolve', 'Proxy', policies), ',Proxy,no-resolve')
+  // 已有策略 -> 替换策略，保留参数
+  assert.equal(setTrailingPolicy(',Proxy,no-resolve', 'DIRECT', policies), ',DIRECT,no-resolve')
+  // 选择「无」-> 移除已知策略，保留参数
+  assert.equal(setTrailingPolicy(',Proxy,no-resolve', '', policies), ',no-resolve')
+  // 选择「无」但首个参数不是已知策略 -> 原样保留
+  assert.equal(setTrailingPolicy(',no-resolve', '', policies), ',no-resolve')
+  // 手输策略不在预置列表中也视为当前策略被替换
+  assert.equal(setTrailingPolicy(',REJECT,pre-matching', 'Proxy', policies), ',Proxy,pre-matching')
 })
