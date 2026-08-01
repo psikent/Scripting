@@ -293,3 +293,71 @@ test('round-trips rules with // inline comments through parse and serialize', ()
   assert.equal(serialized.split('\n').length, 2)
   assert.ok(serialized.includes('// 磨题帮广告'))
 })
+
+test('splits logic rules (AND/OR/NOT) by parenthesis matching, not the first comma', () => {
+  const and = parseRuleLine('AND,((DOMAIN-SUFFIX,xiaohongshu.com,extended-matching), (DEST-PORT,443), (PROTOCOL,UDP)),REJECT')
+  assert.ok(and)
+  assert.equal(and.value, '((DOMAIN-SUFFIX,xiaohongshu.com,extended-matching), (DEST-PORT,443), (PROTOCOL,UDP))')
+  assert.equal(and.trailing, ',REJECT')
+
+  const or = parseRuleLine('OR,((DOMAIN-SUFFIX,a.com),(DOMAIN-SUFFIX,b.com)),Proxy')
+  assert.ok(or)
+  assert.equal(or.value, '((DOMAIN-SUFFIX,a.com),(DOMAIN-SUFFIX,b.com))')
+  assert.equal(or.trailing, ',Proxy')
+
+  const not = parseRuleLine('NOT,((DOMAIN-SUFFIX,a.com)),DIRECT')
+  assert.ok(not)
+  assert.equal(not.value, '((DOMAIN-SUFFIX,a.com))')
+  assert.equal(not.trailing, ',DIRECT')
+})
+
+test('logic rule trailing keeps params, empty when missing, and comment is preserved', () => {
+  const withParams = parseRuleLine('AND,((A),(B)),DIRECT,extended-matching')
+  assert.ok(withParams)
+  assert.equal(withParams.trailing, ',DIRECT,extended-matching')
+
+  const noPolicy = parseRuleLine('AND,((A),(B))')
+  assert.ok(noPolicy)
+  assert.equal(noPolicy.trailing, '')
+
+  const withComment = parseRuleLine('AND,((DEST-PORT,123), (PROTOCOL,UDP)),DIRECT // 对时')
+  assert.ok(withComment)
+  assert.equal(withComment.value, '((DEST-PORT,123), (PROTOCOL,UDP))')
+  assert.equal(withComment.trailing, ',DIRECT')
+  assert.equal(withComment.comment, '// 对时')
+})
+
+test('logic rule falls back to comma splitting when parentheses are unbalanced or absent', () => {
+  // (( A ) , ( B ) , REJECT——括号 3 左 2 右不匹配
+  const unbalanced = parseRuleLine('AND,((A),(B),REJECT')
+  assert.ok(unbalanced)
+  assert.equal(unbalanced.value, '((A)')
+  assert.equal(unbalanced.trailing, ',(B),REJECT')
+
+  const noParen = parseRuleLine('AND,A,B')
+  assert.ok(noParen)
+  assert.equal(noParen.value, 'A')
+  assert.equal(noParen.trailing, ',B')
+})
+
+test('logic rule handles deeply nested parentheses and round-trips unchanged', () => {
+  const nested = parseRuleLine('AND,((((DOMAIN-SUFFIX,a.com))), (DOMAIN-SUFFIX,b.com)),REJECT')
+  assert.ok(nested)
+  assert.equal(nested.value, '((((DOMAIN-SUFFIX,a.com))), (DOMAIN-SUFFIX,b.com))')
+  assert.equal(nested.trailing, ',REJECT')
+
+  const original = 'AND,((DOMAIN-SUFFIX,xiaohongshu.com,extended-matching), (DEST-PORT,443), (PROTOCOL,UDP)),REJECT\n'
+  const parsed = parseFile(original)
+  assert.equal(serializeFile(parsed, parsed.rules), original)
+})
+
+test('non-logic rules are unaffected by parenthesis matching', () => {
+  const domain = parseRuleLine('DOMAIN-SUFFIX,ip.sb,DIRECT')
+  assert.ok(domain)
+  assert.equal(domain.value, 'ip.sb')
+  assert.equal(domain.trailing, ',DIRECT')
+
+  const ip = parseRuleLine('IP-CIDR,1.2.3.4/32,REJECT,no-resolve')
+  assert.ok(ip)
+  assert.equal(ip.trailing, ',REJECT,no-resolve')
+})
