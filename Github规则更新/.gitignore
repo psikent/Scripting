@@ -1,0 +1,4 @@
+# 测试文件与手动检查清单不纳入版本管理
+# git 只跟踪项目运行必要的文件
+tests/
+MANUAL_TEST_CHECKLIST.md
