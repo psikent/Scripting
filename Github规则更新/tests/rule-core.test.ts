@@ -256,7 +256,7 @@ test('finds duplicate rules by type and value and reports rule position', () => 
   assert.equal(match.rule.trailing, ',Proxy')
 })
 
-test('parses // inline comments alongside #', () => {
+test('parses // inline comments but not # inline comments', () => {
   const parsed = parseRuleLine('DOMAIN,a.f-0.cc,REJECT // 磨题帮广告')
   assert.ok(parsed)
   assert.equal(parsed.type, 'DOMAIN')
@@ -264,10 +264,11 @@ test('parses // inline comments alongside #', () => {
   assert.equal(parsed.trailing, ',REJECT')
   assert.equal(parsed.comment, '// 磨题帮广告')
 
+  // 行内 # 不再识别为注释，整体留在 trailing 中
   const hash = parseRuleLine('AND,((DOMAIN-SUFFIX,xiaohongshu.com,extended-matching), (DEST-PORT,443), (PROTOCOL,UDP)),REJECT  # 小红书阻断QUIC')
   assert.ok(hash)
-  assert.equal(hash.comment, '# 小红书阻断QUIC')
-  assert.equal(hash.trailing, ',xiaohongshu.com,extended-matching), (DEST-PORT,443), (PROTOCOL,UDP)),REJECT')
+  assert.equal(hash.comment, '')
+  assert.equal(hash.trailing, ',xiaohongshu.com,extended-matching), (DEST-PORT,443), (PROTOCOL,UDP)),REJECT  # 小红书阻断QUIC')
 })
 
 test('does not mistake // inside rule values or URLs for a comment', () => {
