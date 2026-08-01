@@ -88,6 +88,32 @@ function splitLeadingEditableComments(lines: string[]): { preamble: string[]; co
   }
 }
 
+/**
+ * 逻辑规则（AND/OR/NOT）的表达式断句：从第一个 ( 做括号匹配，
+ * value 为整个逻辑表达式（含两端括号），其后内容作为 trailing（策略等）。
+ * 括号不匹配时返回 null，由调用方回退到普通逗号切分。
+ */
+function splitLogicRule(body: string): { value: string; trailing: string } | null {
+  const open = body.indexOf('(')
+  if (open < 0) return null
+  let depth = 0
+  for (let i = open; i < body.length; i++) {
+    const ch = body[i]
+    if (ch === '(') {
+      depth++
+    } else if (ch === ')') {
+      depth--
+      if (depth === 0) {
+        const value = body.slice(open, i + 1)
+        const rest = body.slice(i + 1).trim()
+        const trailing = rest.startsWith(',') ? rest : rest ? `,${rest}` : ''
+        return { value, trailing }
+      }
+    }
+  }
+  return null
+}
+
 export function parseRuleLine(
   raw: string,
 ): { type: string; value: string; trailing: string; comment: string } | null {
@@ -106,13 +132,24 @@ export function parseRuleLine(
   if (parts.length < 2) return null
 
   const type = parts[0].trim()
-  const value = parts[1].trim()
-  if (!type || !value || !/^[A-Z][A-Z0-9-]*$/.test(type)) return null
+  if (!type || !/^[A-Z][A-Z0-9-]*$/.test(type)) return null
+
+  // 逻辑规则：从第一个 ( 做括号匹配，value 为完整表达式，trailing 仅含策略/参数
+  let value = parts[1].trim()
+  let trailing = parts.length > 2 ? `,${parts.slice(2).join(',')}` : ''
+  if (type === 'AND' || type === 'OR' || type === 'NOT') {
+    const logic = splitLogicRule(body)
+    if (logic) {
+      value = logic.value
+      trailing = logic.trailing
+    }
+  }
+  if (!value) return null
 
   return {
     type,
     value,
-    trailing: parts.length > 2 ? `,${parts.slice(2).join(',')}` : '',
+    trailing,
     comment,
   }
 }
