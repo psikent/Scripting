@@ -1,0 +1,44 @@
+{
+  "intentInputTypes" : [
+    "Text"
+  ],
+  "contributors" : [
+
+  ],
+  "localizedNames" : {
+    "ja" : "",
+    "de" : "",
+    "it" : "",
+    "fr" : "",
+    "zh" : "",
+    "pt" : "",
+    "en" : "",
+    "ru" : "",
+    "es" : ""
+  },
+  "remoteResource" : null,
+  "runInApp" : false,
+  "entry" : "index.tsx",
+  "icon" : "network",
+  "description" : "直接在已有规则文件基础上，添加新规则",
+  "version" : "1.0.0",
+  "author" : {
+    "homepage" : null,
+    "name" : "Lucasss1916",
+    "email" : null
+  },
+  "permissions" : null,
+  "iconImage" : "https:\/\/raw.githubusercontent.com\/fmz200\/wool_scripts\/main\/icons\/apps\/github_00.png",
+  "color" : "rgba(0, 0, 0, 1.00)",
+  "localizedDescriptions" : {
+    "zh" : "",
+    "de" : "",
+    "ru" : "",
+    "it" : "",
+    "ja" : "",
+    "es" : "",
+    "pt" : "",
+    "fr" : ""
+  },
+  "name" : "Github规则更新"
+}

@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "./*.ts",
+    "./*.tsx",
+    "../../dts/global.d.ts",
+    "../../dts/web-fetch.d.ts"
+  ],
+  "exclude": [
+    "./tests"
+  ]
+}
