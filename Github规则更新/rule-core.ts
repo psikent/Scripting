@@ -64,6 +64,17 @@ export function normalizeStandaloneComment(value: string): string {
   return normalized.startsWith('#') ? normalized : `# ${normalized}`
 }
 
+/**
+ * 行内注释规范化：自动补 // 前缀；只有前缀没有内容时视为无注释。
+ * 用于编辑界面预填 `// ` 后直接保存（未输入内容）不污染文件。
+ */
+export function normalizeInlineComment(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (/^\/\/\s*$/.test(trimmed)) return ''
+  return trimmed.startsWith('//') ? trimmed : `// ${trimmed}`
+}
+
 function rawRule(value: string, status: RuleStatus = 'unchanged'): Rule {
   return {
     id: newId(),
