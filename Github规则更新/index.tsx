@@ -37,7 +37,9 @@ import {
   normalizeInlineComment,
   normalizeStandaloneComment,
   parseFile,
+  parseTrailingPolicy,
   serializeFile,
+  setTrailingPolicy,
 } from './rule-core'
 import {
   Config,
@@ -139,7 +141,7 @@ function ConfigView({ onBack }: { onBack: () => void }) {
     >
       <Section
         header={<Text>GitHub 配置</Text>}
-        footer={<Text>私有仓库需要 token 包含 repo scope（classic）或对该仓库的 Read &amp; Write 权限（fine-grained）</Text>}
+        footer={<Text>私有仓库需要 token 包含 repo scope（classic）或对该仓库的 Read & Write 权限（fine-grained）</Text>}
       >
         <TextField title="Token" value={token} prompt="GitHub Token" />
         <TextField title="用户名" value={owner} prompt="GitHub 用户名" />
@@ -486,6 +488,9 @@ function RuleEditorView({
   const trailing = useObservable(rule.trailing)
   // 行内注释预填 //（无注释时），保存时由 normalizeInlineComment 清理空前缀
   const comment = useObservable(rule.comment || '// ')
+  // 配置页预置的策略（如 Proxy、DIRECT），用于 Picker 快速选择
+  const policies = getConfig().policies
+  const currentPolicy = parseTrailingPolicy(trailing.value, policies)
   const error = useObservable('')
 
   const save = () => {
@@ -553,10 +558,23 @@ function RuleEditorView({
       </Section>
 
       <Section
-        header={<Text>额外参数（可选）</Text>}
-        footer={<Text>逗号分隔，例如 ,Proxy,no-resolve（保存时自动补上前导逗号）</Text>}
+        header={<Text>策略（可选）</Text>}
+        footer={<Text>从预置策略中选择，或手动输入策略与参数，逗号分隔（保存时自动补上前导逗号）</Text>}
       >
-        <TextField title="trailing" value={trailing} prompt=",Proxy" autocorrectionDisabled textInputAutocapitalization="never" />
+        {policies.length > 0 ? (
+          <Picker
+            title="从预置策略选择"
+            value={currentPolicy}
+            onChanged={(v: string) => { trailing.setValue(setTrailingPolicy(trailing.value, v, policies)) }}
+            pickerStyle="menu"
+          >
+            <Text tag="">— 无 —</Text>
+            {policies.map(policy => (
+              <Text key={policy} tag={policy}>{policy}</Text>
+            ))}
+          </Picker>
+        ) : null}
+        <TextField title="策略" value={trailing} prompt=",Proxy,no-resolve" autocorrectionDisabled textInputAutocapitalization="never" />
       </Section>
 
       <Section header={<Text>注释（可选）</Text>}>
