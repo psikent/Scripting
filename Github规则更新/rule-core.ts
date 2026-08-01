@@ -75,16 +75,19 @@ function rawRule(value: string, status: RuleStatus = 'unchanged'): Rule {
   }
 }
 
-function splitLeadingEditableComments(lines: string[]): { preamble: string[]; comments: string[] } {
-  let commentStart = lines.length
-  while (commentStart > 0 && isStandaloneComment(lines[commentStart - 1])) commentStart--
-  if (commentStart === lines.length) return { preamble: lines, comments: [] }
+/** `#!` 开头的行属于文件元数据（如 #!name），始终留在文件头隐藏 */
+function isFileHeaderMeta(line: string): boolean {
+  return line.trimStart().startsWith('#!')
+}
 
-  const hasBoundary = commentStart === 0 || lines[commentStart - 1].trim() === ''
-  if (!hasBoundary) return { preamble: lines, comments: [] }
+function splitLeadingEditableComments(lines: string[]): { preamble: string[]; comments: string[] } {
+  // 从第一条普通注释（非 #! 元数据）开始全部作为可编辑/原样行保留，
+  // 其之前的内容（如 [Rule]、#!name）留在文件头隐藏。
+  const firstComment = lines.findIndex(line => isStandaloneComment(line) && !isFileHeaderMeta(line))
+  if (firstComment < 0) return { preamble: lines, comments: [] }
   return {
-    preamble: lines.slice(0, commentStart),
-    comments: lines.slice(commentStart),
+    preamble: lines.slice(0, firstComment),
+    comments: lines.slice(firstComment),
   }
 }
 
@@ -191,11 +194,12 @@ export function formatRule(rule: Rule | RuleCandidate): string {
 
 export function serializeFile(file: ParsedFile, currentRules: Rule[]): string {
   const firstRuleIndex = findFirstActualRuleIndex(currentRules)
-  const hasLeadingComment = currentRules
+  // 仅在「本次新增」了前置注释时补空行分隔；文件原有的首部注释原样保留顺序
+  const hasNewLeadingComment = currentRules
     .slice(0, firstRuleIndex)
-    .some(rule => rule.type === RAW_TYPE && isStandaloneComment(rule.value))
+    .some(rule => rule.type === RAW_TYPE && rule.status === 'added' && isStandaloneComment(rule.value))
   const needsBoundary = (
-    hasLeadingComment &&
+    hasNewLeadingComment &&
     file.preamble.length > 0 &&
     file.preamble[file.preamble.length - 1].trim() !== ''
   )
