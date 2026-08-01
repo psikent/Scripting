@@ -13,6 +13,7 @@ import {
   insertRuleAtStart,
   insertStandaloneCommentBeforeFirstRule,
   isRejectPolicy,
+  isStandaloneComment,
   normalizeStandaloneComment,
   parseFile,
   parseRuleLine,
@@ -360,4 +361,33 @@ test('non-logic rules are unaffected by parenthesis matching', () => {
   const ip = parseRuleLine('IP-CIDR,1.2.3.4/32,REJECT,no-resolve')
   assert.ok(ip)
   assert.equal(ip.trailing, ',REJECT,no-resolve')
+})
+
+test('shows leading comments after the header while keeping only [Rule] hidden', () => {
+  const original = '[Rule]\n#\n# REJECT\n\n#\nIP-CIDR,194.221.250.50/32,REJECT-DROP,no-resolve // telegram阻断劣质节点\nDOMAIN,a.f-0.cc,REJECT // 磨题帮广告\n'
+  const parsed = parseFile(original)
+
+  assert.deepEqual(parsed.preamble, ['[Rule]'])
+  assert.deepEqual(
+    parsed.rules.slice(0, 4).map(rule => rule.value),
+    ['#', '# REJECT', '', '#'],
+  )
+  // 首部注释可编辑
+  assert.equal(parsed.rules[0].type, '__RAW__')
+  assert.equal(isStandaloneComment(parsed.rules[1].value), true)
+  // round-trip 保序（注释分隔空格归一化）
+  const norm = (s: string) => s.replace(/ {2}\/\//g, ' //')
+  assert.equal(norm(serializeFile(parsed, parsed.rules)), norm(original))
+})
+
+test('hides #! metadata and only adds a blank boundary for newly added comments', () => {
+  const original = '#!name=Custom Rule\n[Rule]\n\n# 分组一\nDOMAIN,example.com\n'
+  const parsed = parseFile(original)
+  assert.deepEqual(parsed.preamble, ['#!name=Custom Rule', '[Rule]', ''])
+  assert.equal(serializeFile(parsed, parsed.rules), original)
+
+  // 原有注释不做任何补空行处理，round-trip 严格原样
+  const plain = '[Rule]\n#\n# REJECT\n\n#\nDOMAIN,example.com\n'
+  const parsedPlain = parseFile(plain)
+  assert.equal(serializeFile(parsedPlain, parsedPlain.rules), plain)
 })
