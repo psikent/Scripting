@@ -42,6 +42,9 @@ const REJECT_POLICIES = new Set([
   'REJECT-TINYGIF',
 ])
 
+/** 规则参数选项（复选框顺序即展示顺序） */
+export const RULE_PARAM_OPTIONS = ['pre-matching', 'extended-matching', 'no-resolve'] as const
+
 let idCounter = 0
 
 export function newId(): string {
@@ -377,32 +380,77 @@ function isPolicyName(parameter: string, knownPolicies: string[]): boolean {
   return knownPolicies.includes(parameter) || isRejectPolicy(parameter)
 }
 
+/** 把 trailing 按逗号拆成参数数组（去空白、去空项） */
+export function trailingParams(trailing: string): string[] {
+  return trailing
+    .split(',')
+    .map(parameter => parameter.trim())
+    .filter(Boolean)
+}
+
+/** 取 trailing 中的策略名：首个参数只要不是规则参数选项即视为策略（支持手输策略） */
+export function firstPolicyOf(trailing: string): string {
+  const params = trailingParams(trailing)
+  if (params.length === 0) return ''
+  return RULE_PARAM_OPTIONS.includes(params[0] as any) ? '' : params[0]
+}
+
+/**
+ * 规则参数默认集：
+ * - REJECT 系列策略 → pre-matching
+ * - DOMAIN 系列类型 → extended-matching
+ * - IP-CIDR 系列类型 → no-resolve
+ */
+export function defaultRuleParams(type: string, policy: string): string[] {
+  const params: string[] = []
+  if (isRejectPolicy(policy)) params.push('pre-matching')
+  if (/^DOMAIN/.test(type)) params.push('extended-matching')
+  else if (/^IP-CIDR/.test(type)) params.push('no-resolve')
+  return params
+}
+
+/** 用策略 + 参数列表拼出 trailing；全部为空时返回 ''（不带逗号） */
+export function composeTrailing(policy: string, params: string[]): string {
+  const items = [...(policy && policy.trim() ? [policy.trim()] : []), ...params]
+  return items.length > 0 ? `,${items.join(',')}` : ''
+}
+
+/** 勾选/取消某个规则参数（不影响策略名及其他参数） */
+export function setTrailingParam(trailing: string, param: string, enabled: boolean): string {
+  const params = trailingParams(trailing)
+  const index = params.indexOf(param)
+  if (enabled) {
+    if (index < 0) params.push(param)
+  } else if (index >= 0) {
+    params.splice(index, 1)
+  }
+  return params.length > 0 ? `,${params.join(',')}` : ''
+}
+
 /**
  * 从 trailing（如 `,Proxy,no-resolve`）中解析当前策略：
  * 取第一个参数，仅当它出现在 knownPolicies（预置策略）中才视为策略，否则返回 ''。
  * （REJECT 等内置策略不在预置列表时也返回 ''，Picker 显示「无」。）
  */
 export function parseTrailingPolicy(trailing: string, knownPolicies: string[]): string {
-  const first = trailing
-    .split(',')
-    .map(parameter => parameter.trim())
-    .find(Boolean) ?? ''
+  const first = trailingParams(trailing)[0] ?? ''
   return knownPolicies.includes(first) ? first : ''
 }
 
 /**
  * 设置/清除 trailing 中的策略名，保留其余参数（如 no-resolve）。
- * policy 为空表示选择「无」：仅当首个参数是已知策略时移除它。
+ * policy 为空表示选择「无」：移除策略；若移除后无任何参数则返回 ''（不带逗号）。
+ * 策略识别：首个参数不是规则参数选项（pre-matching 等）即视为策略。
  */
 export function setTrailingPolicy(trailing: string, policy: string, knownPolicies: string[]): string {
-  const params = trailing
-    .split(',')
-    .map(parameter => parameter.trim())
-    .filter(Boolean)
-  const current = params[0] && isPolicyName(params[0], knownPolicies) ? params[0] : null
+  const params = trailingParams(trailing)
   if (!policy) {
-    return current ? `,${params.slice(1).join(',')}` : trailing
+    const rest = params.length > 0 && (RULE_PARAM_OPTIONS as readonly string[]).includes(params[0])
+      ? params
+      : params.slice(1)
+    return rest.length > 0 ? `,${rest.join(',')}` : ''
   }
+  const current = params[0] && isPolicyName(params[0], knownPolicies) ? params[0] : null
   if (current) {
     params[0] = policy
   } else {
@@ -411,20 +459,13 @@ export function setTrailingPolicy(trailing: string, policy: string, knownPolicie
   return `,${params.join(',')}`
 }
 
-function trailingParameters(trailing: string): string[] {
-  return trailing
-    .split(',')
-    .map(parameter => parameter.trim())
-    .filter(Boolean)
-}
-
 export function applyPolicy(candidate: RuleCandidate, policy: string): RuleCandidate {
   const normalizedPolicy = policy.trim()
   if (!normalizedPolicy || normalizedPolicy.includes(',')) {
     throw new Error('策略名称不能为空且不能包含逗号')
   }
 
-  const existingParameters = trailingParameters(candidate.trailing)
+  const existingParameters = trailingParams(candidate.trailing)
   const parameters: string[] = [normalizedPolicy]
   const seen = new Set(parameters)
   const appendUnique = (parameter: string) => {
