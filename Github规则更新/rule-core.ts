@@ -8,6 +8,10 @@ export interface Rule {
   type: string
   value: string
   trailing: string
+  /**
+   * 行内注释文本，**含 `//` 前缀**（如 `// 分享自 appinn`）；空串表示无注释。
+   * `parseRuleLine` 解析结果与 `normalizeInlineComment` 规范化结果均含前缀，`formatRule` 依赖此契约。
+   */
   comment: string
   status: RuleStatus
 }
@@ -68,11 +72,39 @@ export function normalizeStandaloneComment(value: string): string {
 }
 
 /**
- * 行内注释规范化：自动补 // 前缀；只有前缀没有内容时视为无注释。
- * 用于编辑界面预填 `// ` 后直接保存（未输入内容）不污染文件。
+ * 行内注释需压平的换行类字符集（对齐 iOS Foundation CharacterSet.newlines）。
+ * 注意：全局 /g 正则有 lastIndex 状态，仅用于 `String.replace`，勿用于 test/exec/matchAll。
+ */
+export const INLINE_COMMENT_NEWLINES = /[\r\n\v\f\u0085\u2028\u2029]+/g
+
+/** 剔除孤立代理项（不配对的高/低代理），防 UTF-8 编码落盘 U+FFFD；按码元迭代，兼容无 lookbehind 的旧 JS 引擎 */
+function stripLoneSurrogates(value: string): string {
+  let result = ''
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i)
+    if (code >= 0xD800 && code <= 0xDBFF) {
+      const next = value.charCodeAt(i + 1)
+      if (next >= 0xDC00 && next <= 0xDFFF) {
+        result += value[i] + value[i + 1]
+        i++
+      } // 孤立高代理：跳过
+    } else if (code >= 0xDC00 && code <= 0xDFFF) {
+      // 孤立低代理：跳过
+    } else {
+      result += value[i]
+    }
+  }
+  return result
+}
+
+/**
+ * 行内注释规范化：压平换行类字符、剔除孤立代理、自动补 // 前缀；只有前缀没有内容时视为无注释。
+ * 已知限制：NUL 等其它控制字符（\u0000-\u0008\u000E-\u001F）不在净化范围（罕见输入，记为已知限制）。
  */
 export function normalizeInlineComment(value: string): string {
-  const trimmed = value.trim()
+  const singleLine = value.replace(INLINE_COMMENT_NEWLINES, ' ')
+  const noLoneSurrogates = stripLoneSurrogates(singleLine)
+  const trimmed = noLoneSurrogates.trim()
   if (!trimmed) return ''
   if (/^\/\/\s*$/.test(trimmed)) return ''
   return trimmed.startsWith('//') ? trimmed : `// ${trimmed}`
@@ -309,7 +341,7 @@ function normalizeHost(value: string): ExtractedAddress | null {
     if (rest && !/^:\d{1,5}$/.test(rest)) return null
     host = host.slice(1, closing)
   } else {
-    const portMatch = host.match(/^(.+):(\d{1,5})$/) 
+    const portMatch = host.match(/^(.+):(\d{1,5})$/')
     if (portMatch && !portMatch[1].includes(':')) host = portMatch[1]
   }
 
@@ -499,13 +531,13 @@ export function applyPolicy(candidate: RuleCandidate, policy: string): RuleCandi
   }
 }
 
-export function candidateToRule(candidate: RuleCandidate): Rule {
+export function candidateToRule(candidate: RuleCandidate, comment = ''): Rule {
   return {
     id: newId(),
     type: candidate.type,
     value: candidate.value,
     trailing: candidate.trailing,
-    comment: '',
+    comment: normalizeInlineComment(comment ?? ''),
     status: 'added',
   }
 }
@@ -517,6 +549,7 @@ export function insertAsFirstRule(file: ParsedFile, rule: Rule): ParsedFile {
   }
 }
 
+/** 仅比对 type + value（大小写归一化）；注释与策略不参与去重。 */
 export function findDuplicateRule(
   rules: Rule[],
   candidate: RuleCandidate,

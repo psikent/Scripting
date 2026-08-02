@@ -16,6 +16,8 @@ import {
 } from 'scripting'
 
 import {
+  INLINE_COMMENT_NEWLINES,
+  Rule,
   RuleCandidate,
   applyPolicy,
   buildRuleCandidates,
@@ -41,7 +43,7 @@ import {
 interface PendingCommit {
   config: Config
   target: LastRuleFileTarget
-  candidate: RuleCandidate
+  candidate: Rule
   policy: string
   content: string
   sha: string
@@ -71,6 +73,7 @@ function IntentApp({ initialText }: { initialText: string }) {
   const [pending, setPending] = useState<PendingCommit | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [inlineComment, setInlineComment] = useState('')
 
   const address = useMemo(() => extractFirstAddress(input), [input])
   const candidates = useMemo(() => buildRuleCandidates(address), [address])
@@ -106,6 +109,7 @@ function IntentApp({ initialText }: { initialText: string }) {
     setError('')
     try {
       const latest = await fetchFileContent(config, target.path)
+      const rule = candidateToRule(selectedWithPolicy, inlineComment)
       const parsed = parseFile(latest.content)
       const duplicate = findDuplicateRule(parsed.rules, selectedWithPolicy)
       if (duplicate) {
@@ -113,11 +117,11 @@ function IntentApp({ initialText }: { initialText: string }) {
         return
       }
 
-      const inserted = insertAsFirstRule(parsed, candidateToRule(selectedWithPolicy))
+      const inserted = insertAsFirstRule(parsed, rule)
       setPending({
         config,
         target,
-        candidate: selectedWithPolicy,
+        candidate: rule,
         policy: selectedPolicy,
         content: serializeFile(inserted, inserted.rules),
         sha: latest.sha,
@@ -246,6 +250,7 @@ function IntentApp({ initialText }: { initialText: string }) {
         <TextField
           title="文字"
           value={input}
+          disabled={busy}
           onChanged={value => {
             setInput(value)
             setError('')
@@ -301,6 +306,7 @@ function IntentApp({ initialText }: { initialText: string }) {
           <Picker
             title="策略"
             value={selectedPolicy}
+            disabled={busy}
             onChanged={(value: string) => {
               setSelectedPolicy(value)
               setError('')
@@ -313,12 +319,34 @@ function IntentApp({ initialText }: { initialText: string }) {
           </Picker>
         </Section>
       ) : null}
+
+      {candidates.length > 0 ? (
+        <Section header={<Text>行内注释（选填）</Text>}>
+          <TextField
+            title="注释"
+            value={inlineComment}
+            disabled={busy}
+            onChanged={value => {
+              setInlineComment(Array.from(value.replace(INLINE_COMMENT_NEWLINES, ' ')).slice(0, 200).join(''))
+              setError('')
+            }}
+            prompt="如 分享自 appinn（最多 200 字）"
+            axis="horizontal"
+            autocorrectionDisabled
+          />
+        </Section>
+      ) : null}
     </List>
   )
 }
 
 function IntentView() {
-  const initialText = Intent.textsParameter?.filter(Boolean).join('\n') ?? ''
+  // Safari 分享网址时输入走 urlsParameter（textsParameter 为空），
+  // 因此需要优先读文本，为空时回退到 URL 列表。
+  const initialText =
+    Intent.textsParameter?.filter(Boolean).join('\n') ||
+    Intent.urlsParameter?.filter(Boolean).join('\n') ||
+    ''
   return (
     <NavigationStack>
       <IntentApp initialText={initialText} />

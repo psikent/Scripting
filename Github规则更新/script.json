@@ -1,44 +1,46 @@
 {
-  "intentInputTypes" : [
-    "Text"
-  ],
+  "name" : "Github规则更新",
+  "iconImage" : "https:\/\/raw.githubusercontent.com\/fmz200\/wool_scripts\/main\/icons\/apps\/github_00.png",
+  "localizedNames" : {
+    "ru" : "",
+    "fr" : "",
+    "es" : "",
+    "pt" : "",
+    "zh" : "",
+    "ja" : "",
+    "en" : "",
+    "it" : "",
+    "de" : ""
+  },
+  "version" : "1.0.0",
   "contributors" : [
 
   ],
-  "localizedNames" : {
-    "ja" : "",
-    "de" : "",
-    "it" : "",
-    "fr" : "",
-    "zh" : "",
-    "pt" : "",
-    "en" : "",
-    "ru" : "",
-    "es" : ""
-  },
-  "remoteResource" : null,
-  "runInApp" : false,
-  "entry" : "index.tsx",
-  "icon" : "network",
   "description" : "直接在已有规则文件基础上，添加新规则",
-  "version" : "1.0.0",
   "author" : {
     "homepage" : null,
-    "name" : "Lucasss1916",
-    "email" : null
+    "email" : null,
+    "name" : "Lucasss1916"
   },
-  "permissions" : null,
-  "iconImage" : "https:\/\/raw.githubusercontent.com\/fmz200\/wool_scripts\/main\/icons\/apps\/github_00.png",
-  "color" : "rgba(0, 0, 0, 1.00)",
   "localizedDescriptions" : {
+    "es" : "",
+    "it" : "",
+    "pt" : "",
+    "ja" : "",
     "zh" : "",
+    "fr" : "",
     "de" : "",
     "ru" : "",
-    "it" : "",
-    "ja" : "",
-    "es" : "",
-    "pt" : "",
-    "fr" : ""
+    "en" : ""
   },
-  "name" : "Github规则更新"
+  "color" : "rgba(0, 0, 0, 1.00)",
+  "remoteResource" : null,
+  "permissions" : null,
+  "intentInputTypes" : [
+    "Text",
+    "URLs"
+  ],
+  "entry" : "index.tsx",
+  "icon" : "network",
+  "runInApp" : false
 }
