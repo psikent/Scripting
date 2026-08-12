@@ -17,6 +17,10 @@ interface SpendRecord {
   date: string;
   /** 当天首次观察到的总余额（基线） */
   baseline: number;
+  /** 当天累计充值/赠送金额（通过余额跳升检测，净值） */
+  toppedUp: number;
+  /** 上次刷新时观察到的总余额 */
+  lastTotal: number;
 }
 
 class API {
@@ -58,26 +62,43 @@ class API {
 
   /**
    * 计算当天开销（本地差值估算）。
-   * DeepSeek 无用量统计接口，故以当天首次观察到的余额为基线，
-   * 当天开销 = 基线 - 当前余额。跨天时重置基线并返回 0。
-   * 当天充值导致余额增加时，重置基线并从新基线重新累计。
+   * DeepSeek 无用量统计接口，故以当天首次观察到的余额为基线：
+   *   当日开销 = 基线 - (当前余额 - 当日累计充值额)
+   * 余额相对上次观察跳升时，差值计入当日充值额（充值/赠送），
+   * 因此充值不会清零已累计的开销，充值后的消费也能继续累计。
+   * 跨天或无有效记录时初始化基线并返回 0。
    */
   getTodaySpend(total: number): number {
     const today = this.todayString();
     const record = Storage.get<SpendRecord>(this.SPEND_KEY);
 
-    if (!record || record.date !== today || typeof record.baseline !== "number") {
-      Storage.set(this.SPEND_KEY, { date: today, baseline: total });
+    // 跨天 / 无记录 / 旧格式数据（缺 toppedUp、lastTotal）：重新建档
+    if (
+      !record ||
+      record.date !== today ||
+      typeof record.baseline !== "number" ||
+      typeof record.toppedUp !== "number" ||
+      typeof record.lastTotal !== "number"
+    ) {
+      Storage.set(this.SPEND_KEY, {
+        date: today,
+        baseline: total,
+        toppedUp: 0,
+        lastTotal: total,
+      });
       return 0;
     }
 
-    const spend = record.baseline - total;
-    if (spend < 0) {
-      // 充值/赠送导致余额增加：重置基线，避免后续消费被充值额吞掉
-      Storage.set(this.SPEND_KEY, { date: today, baseline: total });
-      return 0;
+    // 余额跳升 = 充值/赠送（两次观察之间的净值）
+    if (total > record.lastTotal) {
+      record.toppedUp += total - record.lastTotal;
     }
-    return spend;
+    record.lastTotal = total;
+
+    const spend = record.baseline - (total - record.toppedUp);
+    const result = spend > 0 ? spend : 0;
+    Storage.set(this.SPEND_KEY, record);
+    return result;
   }
 
   private todayString(): string {
