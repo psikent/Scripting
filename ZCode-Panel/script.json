@@ -1,0 +1,40 @@
+{
+  "name" : "ZCode Panel",
+  "localizedNames" : {
+    "pt" : "",
+    "en" : "",
+    "fr" : "",
+    "ru" : "",
+    "ja" : "",
+    "it" : "",
+    "es" : "",
+    "zh" : "",
+    "de" : ""
+  },
+  "iconImage" : null,
+  "author" : null,
+  "remoteResource" : null,
+  "runInApp" : false,
+  "description" : "智谱 ZCode 账户余额与今日开销小组件",
+  "localizedDescriptions" : {
+    "ru" : "",
+    "zh" : "",
+    "it" : "",
+    "de" : "",
+    "pt" : "",
+    "en" : "",
+    "es" : "",
+    "ja" : ""
+  },
+  "color" : "rgba(47, 107, 255, 1)",
+  "icon" : "wallet.pass.fill",
+  "entry" : "index.tsx",
+  "permissions" : null,
+  "contributors" : [
+
+  ],
+  "version" : null,
+  "intentInputTypes" : [
+
+  ]
+}
