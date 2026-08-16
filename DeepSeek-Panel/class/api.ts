@@ -23,9 +23,27 @@ interface SpendRecord {
   lastTotal: number;
 }
 
+/** 单日开销柱形图数据 */
+export interface DailySpend {
+  /** X 轴标签（周几简称，今天为“今”） */
+  label: string;
+  /** 本地时区日期，格式 YYYY-MM-DD */
+  date: string;
+  /** 当日累计开销 */
+  value: number;
+}
+
+export interface WeeklySpend {
+  /** 最近 7 天（含今天），从最旧到最新 */
+  weekly: DailySpend[];
+  /** 7 日平均开销（基线） */
+  average: number;
+}
+
 class API {
   private readonly KEY = "deepseek_setting";
   private readonly SPEND_KEY = "deepseek_spend_record";
+  private readonly HISTORY_KEY = "deepseek_spend_history";
   private readonly base = "https://api.deepseek.com";
 
   token = "";
@@ -61,51 +79,109 @@ class API {
   }
 
   /**
-   * 计算当天开销（本地差值估算）。
+   * 计算当天开销（本地差值估算），并写入每日历史。
    * DeepSeek 无用量统计接口，故以当天首次观察到的余额为基线：
    *   当日开销 = 基线 - (当前余额 - 当日累计充值额)
    * 余额相对上次观察跳升时，差值计入当日充值额（充值/赠送），
    * 因此充值不会清零已累计的开销，充值后的消费也能继续累计。
-   * 跨天或无有效记录时初始化基线并返回 0。
+   * 跨天时先把前一天最终开销写入历史，再为新的一天建档并返回 0。
    */
   getTodaySpend(total: number): number {
     const today = this.todayString();
     const record = Storage.get<SpendRecord>(this.SPEND_KEY);
+    const history = Storage.get<Record<string, number>>(this.HISTORY_KEY) ?? {};
 
-    // 跨天 / 无记录 / 旧格式数据（缺 toppedUp、lastTotal）：重新建档
+    // 跨天：把前一天最终开销写入历史
     if (
-      !record ||
-      record.date !== today ||
-      typeof record.baseline !== "number" ||
-      typeof record.toppedUp !== "number" ||
-      typeof record.lastTotal !== "number"
+      record &&
+      record.date &&
+      record.date !== today &&
+      typeof record.baseline === "number" &&
+      typeof record.toppedUp === "number" &&
+      typeof record.lastTotal === "number"
     ) {
+      history[record.date] = Math.max(
+        0,
+        record.baseline - (record.lastTotal - record.toppedUp),
+      );
+    }
+
+    const valid =
+      record &&
+      record.date === today &&
+      typeof record.baseline === "number" &&
+      typeof record.toppedUp === "number" &&
+      typeof record.lastTotal === "number";
+
+    let spend = 0;
+    if (!valid) {
+      // 无记录 / 跨天 / 旧格式数据：重新建档
       Storage.set(this.SPEND_KEY, {
         date: today,
         baseline: total,
         toppedUp: 0,
         lastTotal: total,
       });
-      return 0;
+    } else {
+      // 余额跳升 = 充值/赠送（两次观察之间的净值）
+      if (total > record.lastTotal) {
+        record.toppedUp += total - record.lastTotal;
+      }
+      record.lastTotal = total;
+      spend = Math.max(0, record.baseline - (total - record.toppedUp));
+      Storage.set(this.SPEND_KEY, record);
     }
 
-    // 余额跳升 = 充值/赠送（两次观察之间的净值）
-    if (total > record.lastTotal) {
-      record.toppedUp += total - record.lastTotal;
-    }
-    record.lastTotal = total;
+    // 实时写入当天历史
+    history[today] = spend;
+    this.pruneHistory(history);
+    Storage.set(this.HISTORY_KEY, history);
 
-    const spend = record.baseline - (total - record.toppedUp);
-    const result = spend > 0 ? spend : 0;
-    Storage.set(this.SPEND_KEY, record);
-    return result;
+    return spend;
   }
 
-  private todayString(): string {
-    const d = new Date();
+  /**
+   * 取最近 7 天（含今天）每日开销与平均值。
+   * 缺数据的日期补 0。
+   */
+  getWeeklySpend(): WeeklySpend {
+    const history = Storage.get<Record<string, number>>(this.HISTORY_KEY) ?? {};
+    const weekly: DailySpend[] = [];
+    let sum = 0;
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const date = this.dateString(d);
+      const value = history[date] ?? 0;
+      sum += value;
+      weekly.push({ label: i === 0 ? "今" : this.weekdayLabel(d), date, value });
+    }
+    return { weekly, average: sum / 7 };
+  }
+
+  /** 只保留最近 60 天历史，避免无限增长 */
+  private pruneHistory(history: Record<string, number>): void {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 60);
+    const cutoffStr = this.dateString(cutoff);
+    for (const date of Object.keys(history)) {
+      if (date < cutoffStr) delete history[date];
+    }
+  }
+
+  private dateString(d: Date): string {
     const month = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
     return `${d.getFullYear()}-${month}-${day}`;
+  }
+
+  private weekdayLabel(d: Date): string {
+    const names = ["日", "一", "二", "三", "四", "五", "六"];
+    return names[d.getDay()];
+  }
+
+  private todayString(): string {
+    return this.dateString(new Date());
   }
 }
 

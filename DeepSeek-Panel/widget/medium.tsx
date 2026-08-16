@@ -1,48 +1,50 @@
-import { Divider, HStack, Spacer, Text, VStack } from "scripting";
+import { BarChart, Chart, HStack, Spacer, Text, VStack } from "scripting";
 import { Header } from "./comp/header";
 import { currencySymbol, WidgetData } from "./small";
 
-function StatRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <HStack font={"caption"} fontWeight={"semibold"}>
-      <Text foregroundStyle={"secondaryLabel"}>{label}</Text>
-      <Spacer />
-      <Text foregroundStyle={highlight ? "systemRed" : "label"} monospacedDigit={true}>
-        {value}
-      </Text>
-    </HStack>
-  );
-}
-
-export function View({ currency, total, granted, toppedUp, spend }: WidgetData) {
+export function View({ currency, total, spend, weekly, average }: WidgetData) {
   const symbol = currencySymbol(currency);
+  const marks = weekly.map((d) => {
+    const color: "systemRed" | "systemBlue" =
+      d.value > average ? "systemRed" : "systemBlue";
+    return {
+      label: d.label,
+      value: d.value,
+      foregroundStyle: color,
+      cornerRadius: 3,
+    };
+  });
   return (
     <HStack padding={true} spacing={12}>
       <VStack alignment={"leading"} frame={{ maxWidth: "infinity" }}>
         <Header />
-        <Spacer minLength={2} />
+        <Spacer minLength={4} />
         <Text font={"caption"} foregroundStyle={"secondaryLabel"}>
           {"余额"}
         </Text>
         <Text
-          font={"largeTitle"}
+          font={"title2"}
           fontWeight={"bold"}
           monospacedDigit={true}
           lineLimit={1}
           minScaleFactor={0.6}>
           {`${symbol}${total.toFixed(2)}`}
         </Text>
+        <Spacer minLength={4} />
+        <Text font={"caption"} foregroundStyle={"secondaryLabel"}>
+          {"今日开销"}
+        </Text>
+        <Text
+          font={"title2"}
+          fontWeight={"bold"}
+          monospacedDigit={true}
+          foregroundStyle={spend > 0 ? "systemRed" : "secondaryLabel"}>
+          {spend > 0 ? `-${symbol}${spend.toFixed(2)}` : `${symbol}0.00`}
+        </Text>
       </VStack>
-      <Divider />
-      <VStack spacing={6} frame={{ maxWidth: "infinity" }}>
-        <StatRow
-          label={"今日开销"}
-          value={spend > 0 ? `-${symbol}${spend.toFixed(2)}` : `${symbol}0.00`}
-          highlight={spend > 0}
-        />
-        <StatRow label={"赠金余额"} value={`${symbol}${granted.toFixed(2)}`} />
-        <StatRow label={"充值余额"} value={`${symbol}${toppedUp.toFixed(2)}`} />
-      </VStack>
+      <Chart frame={{ maxWidth: "infinity", maxHeight: "infinity" }} chartYAxis="hidden">
+        <BarChart labelOnYAxis={false} marks={marks} />
+      </Chart>
     </HStack>
   );
 }

@@ -138,6 +138,8 @@ function BalanceSection({ token }: { token: Observable<string> }) {
       const info = res.balance_infos[0];
       if (!info) throw new Error("未获取到余额信息");
       const total = parseFloat(info.total_balance) || 0;
+      const spend = api.getTodaySpend(total);
+      const { weekly, average } = api.getWeeklySpend();
       state.setValue({
         loading: false,
         data: {
@@ -145,7 +147,9 @@ function BalanceSection({ token }: { token: Observable<string> }) {
           total,
           granted: parseFloat(info.granted_balance) || 0,
           toppedUp: parseFloat(info.topped_up_balance) || 0,
-          spend: api.getTodaySpend(total),
+          spend,
+          weekly,
+          average,
         },
         error: "",
       });

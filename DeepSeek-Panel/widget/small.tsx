@@ -1,4 +1,5 @@
 import { Divider, HStack, Spacer, Text, VStack } from "scripting";
+import { DailySpend } from "../class/api";
 import { Header } from "./comp/header";
 
 export interface WidgetData {
@@ -7,6 +8,10 @@ export interface WidgetData {
   granted: number;
   toppedUp: number;
   spend: number;
+  /** 最近 7 天每日开销（含今天，从最旧到最新） */
+  weekly: DailySpend[];
+  /** 7 日平均开销（基线） */
+  average: number;
 }
 
 export function currencySymbol(currency: string): string {
