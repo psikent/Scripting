@@ -1,39 +1,44 @@
 {
-  "runInApp" : false,
-  "color" : "rgba(77, 107, 254, 1)",
   "name" : "DeepSeek Panel",
-  "description" : "DeepSeek 余额与今日开销小组件",
-  "intentInputTypes" : [
-
-  ],
-  "entry" : "index.tsx",
+  "localizedNames" : {
+    "pt" : "",
+    "en" : "",
+    "fr" : "",
+    "ru" : "",
+    "ja" : "",
+    "it" : "",
+    "es" : "",
+    "zh" : "",
+    "de" : ""
+  },
   "iconImage" : null,
+  "author" : null,
+  "remoteResource" : {
+    "autoUpdateInterval" : null,
+    "hash" : "08a923786e0412127b3a06dff38d019d",
+    "url" : "https:\/\/github.com\/psikent\/Scripting\/tree\/main\/DeepSeek-Panel"
+  },
+  "runInApp" : false,
+  "description" : "DeepSeek 余额与今日开销小组件",
+  "localizedDescriptions" : {
+    "ru" : "",
+    "zh" : "",
+    "it" : "",
+    "de" : "",
+    "pt" : "",
+    "en" : "",
+    "es" : "",
+    "ja" : ""
+  },
+  "color" : "rgba(77, 107, 254, 1)",
   "icon" : "wallet.pass.fill",
+  "entry" : "index.tsx",
+  "permissions" : null,
   "contributors" : [
 
   ],
   "version" : null,
-  "localizedNames" : {
-    "fr" : "",
-    "ja" : "",
-    "en" : "",
-    "zh" : "",
-    "ru" : "",
-    "de" : "",
-    "pt" : "",
-    "it" : "",
-    "es" : ""
-  },
-  "author" : null,
-  "localizedDescriptions" : {
-    "de" : "",
-    "pt" : "",
-    "ru" : "",
-    "en" : "",
-    "zh" : "",
-    "ja" : "",
-    "it" : "",
-    "es" : ""
-  },
-  "permissions" : null
+  "intentInputTypes" : [
+
+  ]
 }
