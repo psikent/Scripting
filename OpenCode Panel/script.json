@@ -1,0 +1,40 @@
+{
+  "runInApp" : false,
+  "color" : "rgba(26, 26, 26,1)",
+  "name" : "OpenCode Panel",
+  "description" : "OpenCode Go 订阅限额面板：应用内列表 + 桌面小组件 + 手表圆形小组件，实时监控 Rolling（5 小时）、Weekly（1 周）、Monthly（1 月）三个限额窗口的已用百分比、状态与重置时间，超出限额红色高亮；配合刷新动作，深色/浅色界面均适配官方图标。首次使用在设置页填入 opencode.ai Console Keys 的 API Key（sk- 开头），数据经 opencode.ai 官方限额接口获取。",
+  "intentInputTypes" : [
+
+  ],
+  "entry" : "index.tsx",
+  "iconImage" : null,
+  "icon" : "terminal.fill",
+  "contributors" : [
+
+  ],
+  "version" : null,
+  "localizedNames" : {
+    "fr" : "",
+    "ja" : "",
+    "en" : "",
+    "ru" : "",
+    "zh" : "",
+    "de" : "",
+    "pt" : "",
+    "it" : "",
+    "es" : ""
+  },
+  "author" : null,
+  "localizedDescriptions" : {
+    "de" : "",
+    "pt" : "",
+    "ru" : "",
+    "en" : "OpenCode Go subscription usage panel: in-app list, home-screen widget and watch circular widget showing percent used, status and reset time for the Rolling (5h), Weekly (1w) and Monthly (1m) limit windows, red highlight when rate-limited; pull-to-refresh and tap-to-reload. Fill the workspace API Key (sk-) on the Settings page.",
+    "zh" : "OpenCode Go 订阅限额面板：应用内列表 + 桌面小组件 + 手表圆形小组件，实时监控 Rolling（5 小时）、Weekly（1 周）、Monthly（1 月）三个限额窗口的已用百分比、状态与重置时间，超出限额红色高亮；配合刷新动作，深色/浅色界面均适配官方图标。首次使用在设置页填入 opencode.ai Console Keys 的 API Key（sk- 开头）。",
+    "fr" : "",
+    "ja" : "",
+    "es" : "",
+    "it" : ""
+  },
+  "permissions" : null
+}
