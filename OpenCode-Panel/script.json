@@ -1,0 +1,40 @@
+{
+  "runInApp" : false,
+  "color" : "rgba(26, 26, 26,1)",
+  "name" : "OpenCode Panel",
+  "description" : null,
+  "intentInputTypes" : [
+
+  ],
+  "entry" : "index.tsx",
+  "iconImage" : null,
+  "icon" : "terminal.fill",
+  "contributors" : [
+
+  ],
+  "version" : null,
+  "localizedNames" : {
+    "fr" : "",
+    "ja" : "",
+    "en" : "",
+    "ru" : "",
+    "zh" : "",
+    "de" : "",
+    "pt" : "",
+    "it" : "",
+    "es" : ""
+  },
+  "author" : null,
+  "localizedDescriptions" : {
+    "de" : "",
+    "pt" : "",
+    "ru" : "",
+    "en" : "",
+    "zh" : "",
+    "fr" : "",
+    "ja" : "",
+    "es" : "",
+    "it" : ""
+  },
+  "permissions" : null
+}
