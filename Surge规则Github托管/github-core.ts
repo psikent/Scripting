@@ -27,6 +27,17 @@ export interface CommitResult {
   newSha?: string
 }
 
+/** 始终可用的内置策略；用户配置的策略仍保持原有顺序。 */
+export const BUILT_IN_POLICIES = ['REJECT-DROP'] as const
+
+export function withBuiltInPolicies(policies: string[]): string[] {
+  const result = [...policies]
+  for (const policy of BUILT_IN_POLICIES) {
+    if (!result.includes(policy)) result.push(policy)
+  }
+  return result
+}
+
 export function parsePolicyText(text: string): PolicyParseResult {
   const policies: string[] = []
   const invalidPolicies: string[] = []

@@ -29,6 +29,7 @@ import {
   parseFile,
   serializeFile,
 } from './rule-core'
+import { withBuiltInPolicies } from './github-core'
 import {
   Config,
   LastRuleFileTarget,
@@ -65,7 +66,7 @@ function CandidateLabel({ candidate }: { candidate: RuleCandidate }) {
 function IntentApp({ initialText }: { initialText: string }) {
   const dismiss = Navigation.useDismiss()
   const config = getConfig()
-  const policies = config.policies
+  const policies = withBuiltInPolicies(config.policies)
   const [phase, setPhase] = useState<IntentPhase>('edit')
   const [input, setInput] = useState(initialText)
   const [selectedId, setSelectedId] = useState('')
