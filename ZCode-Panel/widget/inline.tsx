@@ -1,12 +1,12 @@
 import { Text } from "scripting";
-import { WidgetData } from "./small";
+import { formatPercentage, WidgetData } from "./small";
 
-export function View({ total, spend }: WidgetData) {
-  const spendText =
-    spend > 0 ? `今日 -¥${spend.toFixed(2)}` : "今日 ¥0.00";
+export function View({ rolling, weekly }: WidgetData) {
+  const rollingText = rolling ? `${formatPercentage(rolling.percentage)}%` : "—";
+  const weeklyText = weekly ? `${formatPercentage(weekly.percentage)}%` : "—";
   return (
     <Text font={"subheadline"} fontWeight={"semibold"} monospacedDigit={true} lineLimit={1}>
-      {`ZCode ¥${total.toFixed(2)} · ${spendText}`}
+      {`ZCode · 5小时 ${rollingText} · 周 ${weeklyText}`}
     </Text>
   );
 }

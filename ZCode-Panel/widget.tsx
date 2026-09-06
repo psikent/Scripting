@@ -7,20 +7,13 @@ import { View as Circular } from "./widget/circular";
 import { View as Inline } from "./widget/inline";
 
 (async () => {
-  if (!api.token) throw new Error("请填写 access_token");
+  if (!api.codingPlanKey) throw new Error("请填写 Coding Plan API Key");
 
-  const account = await api.getAccount();
-  const spend = api.getTodaySpend(account.totalSpendAmount);
-  const { weekly, average } = api.getWeeklySpend();
+  const usage = await api.getPackageUsage();
   const props: WidgetData = {
-    total: account.availableBalance,
-    balance: account.balance,
-    recharge: account.rechargeAmount,
-    granted: account.giveAmount,
-    spend,
-    totalSpend: account.totalSpendAmount,
-    weekly,
-    average,
+    level: usage.level,
+    rolling: usage.rolling,
+    weekly: usage.weekly,
   };
 
   const reloadButton = (node: JSX.Element) => (
@@ -31,7 +24,7 @@ import { View as Inline } from "./widget/inline";
 
   switch (Widget.family) {
     case "accessoryCircular":
-      Widget.present(reloadButton(<Circular {...props} />));
+      Widget.present(reloadButton(<Circular percentage={props.weekly?.percentage ?? 0} />));
       break;
     case "accessoryInline":
     case "accessoryRectangular":

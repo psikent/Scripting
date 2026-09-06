@@ -1,49 +1,70 @@
-import { BarChart, Chart, HStack, Spacer, Text, VStack } from "scripting";
+import { Divider, HStack, Spacer, Text, VStack } from "scripting";
 import { Header } from "./comp/header";
-import { WidgetData } from "./small";
+import {
+  formatPercentage,
+  formatPlanLevel,
+  formatRemaining,
+  formatResetTime,
+  formatUsage,
+  UsageProgress,
+  WidgetData,
+} from "./small";
 
-export function View({ total, spend, weekly, average }: WidgetData) {
-  const marks = weekly.map((d) => {
-    const color: "systemRed" | "systemBlue" =
-      d.value > average ? "systemRed" : "systemBlue";
-    return {
-      label: d.label,
-      value: d.value,
-      foregroundStyle: color,
-      cornerRadius: 3,
-    };
-  });
+export function View({ level, rolling, weekly }: WidgetData) {
   return (
-    <HStack padding={true} spacing={12}>
-      <VStack alignment={"leading"} frame={{ maxWidth: "infinity" }}>
-        <Header />
-        <Spacer minLength={4} />
-        <Text font={"caption"} foregroundStyle={"secondaryLabel"}>
-          {"可用余额"}
+    <VStack padding={true} alignment="leading" spacing={7}>
+      <Header detail={formatPlanLevel(level)} />
+      <Divider />
+      <MediumUsageRow label="5 小时额度" window={rolling} />
+      <MediumUsageRow label="每周额度" window={weekly} />
+    </VStack>
+  );
+}
+
+function MediumUsageRow({
+  label,
+  window,
+}: {
+  label: string;
+  window: WidgetData["rolling"];
+}) {
+  const percentage = window?.percentage ?? 0;
+  const warning = percentage >= 90;
+  const resetText = window?.resetAt ? `重置 ${formatResetTime(window.resetAt)}` : "";
+  return (
+    <VStack alignment="leading" spacing={3}>
+      <HStack frame={{ maxWidth: "infinity" }}>
+        <Text font="caption" fontWeight="semibold" foregroundStyle="secondaryLabel">
+          {label}
         </Text>
+        <Spacer />
         <Text
-          font={"title2"}
-          fontWeight={"bold"}
+          font="headline"
+          fontWeight="bold"
           monospacedDigit={true}
-          lineLimit={1}
-          minScaleFactor={0.6}>
-          {`¥${total.toFixed(2)}`}
+          foregroundStyle={warning ? "systemRed" : "label"}>
+          {window ? `${formatPercentage(percentage)}%` : "—"}
         </Text>
-        <Spacer minLength={4} />
-        <Text font={"caption"} foregroundStyle={"secondaryLabel"}>
-          {"今日开销"}
+      </HStack>
+      <UsageProgress
+        percentage={percentage}
+        color={warning ? "systemRed" : "tintColor"}
+        height={9}
+      />
+      <HStack frame={{ maxWidth: "infinity" }} font="caption" foregroundStyle="secondaryLabel">
+        <Text monospacedDigit={true} lineLimit={1}>
+          {window ? formatUsage(window) : "暂无数据"}
         </Text>
-        <Text
-          font={"title2"}
-          fontWeight={"bold"}
-          monospacedDigit={true}
-          foregroundStyle={spend > 0 ? "systemRed" : "secondaryLabel"}>
-          {spend > 0 ? `-¥${spend.toFixed(2)}` : "¥0.00"}
+        {window ? (
+          <Text monospacedDigit={true} lineLimit={1} padding={{ leading: 8 }}>
+            {formatRemaining(window)}
+          </Text>
+        ) : null}
+        <Spacer minLength={6} />
+        <Text monospacedDigit={true} lineLimit={1}>
+          {resetText}
         </Text>
-      </VStack>
-      <Chart frame={{ maxWidth: "infinity", maxHeight: "infinity" }} chartYAxis="hidden">
-        <BarChart labelOnYAxis={false} marks={marks} />
-      </Chart>
-    </HStack>
+      </HStack>
+    </VStack>
   );
 }

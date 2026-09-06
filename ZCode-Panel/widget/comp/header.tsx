@@ -15,7 +15,7 @@ export function Logo({ size = 19 }: { size?: number }) {
   );
 }
 
-export function Header() {
+export function Header({ detail }: { detail?: string }) {
   const size = 19;
   return (
     <HStack>
@@ -24,6 +24,15 @@ export function Header() {
       <Text font={"headline"} padding={{ top: -2 }}>
         {"ZCode"}
       </Text>
+      {detail ? (
+        <Text
+          font={"caption"}
+          fontWeight={"semibold"}
+          foregroundStyle={"secondaryLabel"}
+          padding={{ leading: 5 }}>
+          {detail}
+        </Text>
+      ) : null}
     </HStack>
   );
 }
