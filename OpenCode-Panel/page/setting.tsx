@@ -59,17 +59,12 @@ function SaveButton() {
 function StackView() {
   return (
     <List>
-      <Section header={<Text>Workspace API Key</Text>} footer={<TokenHelp />}>
+      <Section header={<Text>OpenCode API Key</Text>} footer={<TokenHelp />}>
         <TokenSec />
         <SettingsLinkRow
-          title="打开 OpenCode Console"
-          systemImage="safari"
-          url="https://opencode.ai/console"
-        />
-        <SettingsLinkRow
-          title="直接打开 Keys 页"
+          title="打开 OpenCode API 管理"
           systemImage="key.fill"
-          url="https://opencode.ai/console/keys"
+          url="https://opencode.ai/auth"
         />
       </Section>
     </List>
@@ -127,7 +122,7 @@ function TokenHelp() {
   return (
     <Text font={"footnote"} foregroundStyle={"secondaryLabel"}>
       {
-        "需要你 Go 订阅所在工作区的 API Key（sk- 开头）：\n\n1. 打开 opencode.ai/console，登录后点顶部「Keys」标签页。\n\n2. 点 Create 创建一个 key（名字随意），复制完整值（sk- 开头，只在创建时显示一次）。\n\n3. 粘贴到这里保存。此 key 仅用于读取 Go 限额（5 小时 / 1 周 / 1 月）。"
+        "需要 OpenCode API Key（sk- 开头）：\n\n1. 打开下方的 OpenCode API 管理页并登录。\n\n2. 创建 API Key，复制完整值后粘贴到这里保存。\n\n此 Key 仅用于读取 Go 限额（5 小时 / 1 周 / 1 月）。"
       }
     </Text>
   );
