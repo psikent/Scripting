@@ -367,18 +367,19 @@ function PackageUsageSection({ apiKey }: { apiKey: Observable<string> }) {
 function PackageUsageRow({ window }: { window: PackageUsageWindow }) {
   const title =
     window.kind === "rolling" ? "5 小时额度" : window.kind === "weekly" ? "每周额度" : "MCP 月额度";
-  const detail = formatUsageDetail(window);
+  const remainingPercentage = Math.max(0, Math.min(100, 100 - window.percentage));
+  const detail = formatRemainingDetail(window);
   const reset = window.resetAt ? `下次重置 ${formatResetTime(window.resetAt)}` : "";
   return (
     <VStack alignment="leading" spacing={6} padding={{ top: 6, bottom: 6 }}>
       <HStack frame={{ maxWidth: "infinity" }}>
         <Text foregroundStyle="label">{title}</Text>
         <Spacer />
-        <Text monospacedDigit={true} foregroundStyle={usageColor(window.percentage)}>
-          {`${window.percentage.toFixed(1)}%`}
+        <Text monospacedDigit={true} foregroundStyle={remainingColor(remainingPercentage)}>
+          {`${remainingPercentage.toFixed(1)}%`}
         </Text>
       </HStack>
-      <ProgressView value={window.percentage} total={100} />
+      <ProgressView value={remainingPercentage} total={100} />
       {detail || reset ? (
         <HStack frame={{ maxWidth: "infinity" }}>
           <Text font="caption" foregroundStyle="secondaryLabel" monospacedDigit={true}>
@@ -399,14 +400,17 @@ function formatPlanLevel(level: string): string {
   return names[level.toLowerCase()] ?? level;
 }
 
-function formatUsageDetail(window: PackageUsageWindow): string {
-  if (window.used !== undefined && window.total !== undefined) {
-    return `${formatQuota(window.used)} / ${formatQuota(window.total)}`;
+function formatRemainingDetail(window: PackageUsageWindow): string {
+  const remaining =
+    window.remaining ??
+    (window.total !== undefined && window.used !== undefined
+      ? Math.max(0, window.total - window.used)
+      : undefined);
+  if (remaining !== undefined && window.total !== undefined) {
+    return `剩余 ${formatQuota(remaining)} / ${formatQuota(window.total)}`;
   }
-  if (window.remaining !== undefined && window.total !== undefined) {
-    return `剩余 ${formatQuota(window.remaining)} / ${formatQuota(window.total)}`;
-  }
-  return window.remaining !== undefined ? `剩余 ${formatQuota(window.remaining)}` : "";
+  if (remaining !== undefined) return `剩余 ${formatQuota(remaining)}`;
+  return `剩余 ${Math.max(0, 100 - window.percentage).toFixed(1)}%`;
 }
 
 function formatQuota(value: number): string {
@@ -425,9 +429,9 @@ function formatResetTime(timestamp: number): string {
   return `${month}-${day} ${hour}:${minute}`;
 }
 
-function usageColor(percentage: number): "systemRed" | "systemOrange" | "label" {
-  if (percentage >= 90) return "systemRed";
-  if (percentage >= 70) return "systemOrange";
+function remainingColor(percentage: number): "systemRed" | "systemOrange" | "label" {
+  if (percentage <= 10) return "systemRed";
+  if (percentage <= 30) return "systemOrange";
   return "label";
 }
 

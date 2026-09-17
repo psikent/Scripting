@@ -29,8 +29,8 @@ export function UsageRow({
   label: string;
   window: PackageUsageWindow | null;
 }) {
-  const percentage = window?.percentage ?? 0;
-  const warning = percentage >= 90;
+  const remainingPercentage = getRemainingPercentage(window);
+  const warning = remainingPercentage <= 10;
 
   return (
     <VStack spacing={1} padding={{ top: 4 }}>
@@ -38,13 +38,13 @@ export function UsageRow({
         <Text>{label}</Text>
         <Spacer />
         <Text foregroundStyle={warning ? "systemRed" : "label"} monospacedDigit={true}>
-          {window ? `${formatPercentage(percentage)}%` : "—"}
+          {window ? `剩余 ${formatPercentage(remainingPercentage)}%` : "—"}
         </Text>
       </HStack>
-      <UsageProgress percentage={percentage} color={warning ? "systemRed" : "tintColor"} height={6} />
+      <UsageProgress percentage={remainingPercentage} color={warning ? "systemRed" : "tintColor"} height={6} />
       <HStack font="caption" foregroundStyle="secondaryLabel">
         <Text monospacedDigit={true} lineLimit={1} minScaleFactor={0.7}>
-          {window ? formatUsage(window, true) : "暂无数据"}
+          {window ? formatRemaining(window, true) : "暂无数据"}
         </Text>
         <Spacer minLength={4} />
         <Text monospacedDigit={true} lineLimit={1} minScaleFactor={0.7}>
@@ -96,6 +96,32 @@ export function formatPlanLevel(level: string): string {
   return names[level.toLowerCase()] ?? level;
 }
 
+export function getRemaining(window: PackageUsageWindow): number | undefined {
+  if (window.remaining !== undefined) return Math.max(0, window.remaining);
+  if (window.total !== undefined && window.used !== undefined) {
+    return Math.max(0, window.total - window.used);
+  }
+  return undefined;
+}
+
+export function getRemainingPercentage(window: PackageUsageWindow | null): number {
+  if (!window) return 0;
+  return Math.max(0, Math.min(100, 100 - window.percentage));
+}
+
+export function formatRemaining(window: PackageUsageWindow, compact = false): string {
+  const remaining = getRemaining(window);
+  if (remaining !== undefined && window.total !== undefined) {
+    return compact
+      ? `剩 ${formatQuota(remaining, true)}/${formatQuota(window.total, true)}`
+      : `剩余 ${formatQuota(remaining)} / ${formatQuota(window.total)}`;
+  }
+  if (remaining !== undefined) {
+    return `${compact ? "剩" : "剩余"} ${formatQuota(remaining, compact)}`;
+  }
+  return `剩余 ${formatPercentage(getRemainingPercentage(window))}%`;
+}
+
 export function formatUsage(window: PackageUsageWindow, compact = false): string {
   if (window.used !== undefined && window.total !== undefined) {
     const used = formatQuota(window.used, compact);
@@ -106,14 +132,6 @@ export function formatUsage(window: PackageUsageWindow, compact = false): string
     return `${compact ? "剩" : "剩余"} ${formatQuota(window.remaining, compact)}`;
   }
   return `已用 ${formatPercentage(window.percentage)}%`;
-}
-
-export function formatRemaining(window: PackageUsageWindow): string {
-  if (window.remaining !== undefined) return `剩余 ${formatQuota(window.remaining)}`;
-  if (window.used !== undefined && window.total !== undefined) {
-    return `剩余 ${formatQuota(Math.max(0, window.total - window.used))}`;
-  }
-  return "";
 }
 
 export function formatQuota(value: number, compact = false): string {

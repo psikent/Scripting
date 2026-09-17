@@ -5,7 +5,7 @@ import {
   formatPlanLevel,
   formatRemaining,
   formatResetTime,
-  formatUsage,
+  getRemainingPercentage,
   UsageProgress,
   WidgetData,
 } from "./small";
@@ -28,8 +28,8 @@ function MediumUsageRow({
   label: string;
   window: WidgetData["rolling"];
 }) {
-  const percentage = window?.percentage ?? 0;
-  const warning = percentage >= 90;
+  const remainingPercentage = getRemainingPercentage(window);
+  const warning = remainingPercentage <= 10;
   const resetText = window?.resetAt ? `重置 ${formatResetTime(window.resetAt)}` : "";
   return (
     <VStack alignment="leading" spacing={3}>
@@ -43,23 +43,18 @@ function MediumUsageRow({
           fontWeight="bold"
           monospacedDigit={true}
           foregroundStyle={warning ? "systemRed" : "label"}>
-          {window ? `${formatPercentage(percentage)}%` : "—"}
+          {window ? `剩余 ${formatPercentage(remainingPercentage)}%` : "—"}
         </Text>
       </HStack>
       <UsageProgress
-        percentage={percentage}
+        percentage={remainingPercentage}
         color={warning ? "systemRed" : "tintColor"}
         height={9}
       />
       <HStack frame={{ maxWidth: "infinity" }} font="caption" foregroundStyle="secondaryLabel">
         <Text monospacedDigit={true} lineLimit={1}>
-          {window ? formatUsage(window) : "暂无数据"}
+          {window ? formatRemaining(window) : "暂无数据"}
         </Text>
-        {window ? (
-          <Text monospacedDigit={true} lineLimit={1} padding={{ leading: 8 }}>
-            {formatRemaining(window)}
-          </Text>
-        ) : null}
         <Spacer minLength={6} />
         <Text monospacedDigit={true} lineLimit={1}>
           {resetText}

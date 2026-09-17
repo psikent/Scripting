@@ -24,7 +24,7 @@ import { View as Inline } from "./widget/inline";
 
   switch (Widget.family) {
     case "accessoryCircular":
-      Widget.present(reloadButton(<Circular percentage={props.weekly?.percentage ?? 0} />));
+      Widget.present(reloadButton(<Circular window={props.weekly} />));
       break;
     case "accessoryInline":
     case "accessoryRectangular":
