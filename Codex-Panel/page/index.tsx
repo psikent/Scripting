@@ -108,8 +108,6 @@ function StackView({
   const { fiveHour, weekly } = resolveRateLimitWindows(rate_limit);
   return (
     <List
-      navigationTitle={navigationTitle}
-      toolbar={toolbar}
       refreshable={async () => {
         await Promise.all([init(), new Promise((r: any) => setTimeout(r, 500))]);
       }}>
