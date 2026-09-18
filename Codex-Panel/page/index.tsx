@@ -119,27 +119,28 @@ function StackView({
             <Text>{`${plan_type}`}</Text>
           </HStack>
         }>
-        {fiveHour ? <LimitProgress title={"5 小时限额"} window={fiveHour} /> : null}
-        {weekly ? <LimitProgress title={"每周限额"} window={weekly} /> : null}
+        {fiveHour ? <LimitProgress title={"5 小时"} window={fiveHour} /> : null}
+        {weekly ? <LimitProgress title={"每周"} window={weekly} /> : null}
       </Section>
     </List>
   );
 }
 
 function LimitProgress({ title, window }: { title: string; window: RateLimitWindow }) {
+  const remainingPercent = 100 - window.used_percent;
   return (
     <VStack alignment={"leading"}>
-      <HStack>
-        <Text fontWeight={"semibold"}>{title}</Text>
+      <HStack font={"caption"} fontWeight={"semibold"} foregroundStyle={"secondaryLabel"}>
+        <Text>{title}</Text>
         <Spacer />
-        <Text monospacedDigit={true}>{`${window.used_percent}%`}</Text>
+        <Text monospacedDigit={true}>{`${remainingPercent}%`}</Text>
       </HStack>
       <Rectangle
-        frame={{ height: 24 }}
+        frame={{ height: 8 }}
         fill={"tertiarySystemFill"}
         clipShape={{
-          type: "capsule",
-          style: "continuous",
+          type: "rect",
+          cornerRadius: 4,
         }}
         overlay={
           <Rectangle
@@ -148,20 +149,29 @@ function LimitProgress({ title, window }: { title: string; window: RateLimitWind
               color: "tintColor",
             }}
             scaleEffect={{
-              x: window.used_percent / 100,
+              x: remainingPercent / 100,
               y: 1,
               anchor: "leading",
             }}
             clipShape={{
-              type: "capsule",
-              style: "continuous",
+              type: "rect",
+              cornerRadius: 4,
             }}
           />
         }
       />
-      <Text font={"caption"} foregroundStyle={"secondaryLabel"}>
-        {`重置：${new Date(window.reset_at * 1000).toLocaleString("zh-CN")}`}
-      </Text>
+      <HStack font={"caption2"} foregroundStyle={"secondaryLabel"}>
+        <Text>{"重置"}</Text>
+        <Spacer />
+        <Text>
+          {new Date(window.reset_at * 1000).toLocaleString("zh-CN", {
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Text>
+      </HStack>
     </VStack>
   );
 }
