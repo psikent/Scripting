@@ -17,12 +17,16 @@ class API {
   }
 
   async getUsage() {
-    return await fetch(`${this.base}/backend-api/wham/usage`, {
+    const response = await fetch(`${this.base}/backend-api/wham/usage`, {
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${this.token}`,
       },
-    }).then((r) => r.json());
+    });
+    if (!response.ok) {
+      throw new Error(`获取额度失败（HTTP ${response.status}）`);
+    }
+    return await response.json();
   }
 }
 

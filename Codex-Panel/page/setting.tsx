@@ -40,15 +40,23 @@ function SaveButton() {
     <Button
       action={async () => {
         load.setValue(true);
-        const status = await api.save();
-        load.setValue(false);
-        if (!status) {
-          Dialog.alert({
+        try {
+          const status = await api.save();
+          if (!status) {
+            await Dialog.alert({
+              title: "错误",
+              message: "获取 Account ID 失败",
+            });
+          } else {
+            dismiss(true);
+          }
+        } catch (e) {
+          await Dialog.alert({
             title: "错误",
-            message: "获取 Account ID 失败",
+            message: String(e),
           });
-        } else {
-          dismiss();
+        } finally {
+          load.setValue(false);
         }
       }}>
       {load.value ? <ProgressView /> : <Image systemName={"checkmark"} />}
@@ -121,7 +129,21 @@ function TokenSec() {
   useEffect(() => {
     api.token = v.value;
   }, [v.value]);
-  return <TextField title={"Token"} value={v} />;
+
+  async function pasteToken() {
+    const text = await Pasteboard.getString();
+    const token = text?.trim();
+    if (!token) return;
+    v.setValue(token);
+    api.token = token;
+  }
+
+  return (
+    <HStack spacing={8}>
+      <TextField title={"Token"} value={v} />
+      <Button title={"粘贴"} systemImage={"doc.on.clipboard"} action={pasteToken} />
+    </HStack>
+  );
 }
 
 function TokenHelp() {
