@@ -131,6 +131,9 @@ function TokenSec() {
   }, [v.value]);
 
   async function pasteToken() {
+    v.setValue("");
+    api.token = "";
+
     const text = await Pasteboard.getString();
     const token = text?.trim();
     if (!token) return;
