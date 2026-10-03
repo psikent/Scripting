@@ -4,7 +4,7 @@
   "name" : "规则搜索",
   "remoteResource" : {
     "autoUpdateInterval" : 600,
-    "url" : "https:\/\/github.com\/psikent\/Scripting\/tree\/main\/Rule-Search",
+    "url" : "https://raw.githubusercontent.com/psikent/Scripting/main/Rule-Search/Rule-Search.scripting",
     "hash" : ""
   },
   "color" : "rgba(10, 132, 255, 1)",

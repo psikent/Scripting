@@ -25,7 +25,7 @@
   },
   "remoteResource" : {
     "autoUpdateInterval" : 14400,
-    "url" : "https:\/\/github.com\/psikent\/Scripting\/tree\/main\/Icon-Search",
+    "url" : "https://raw.githubusercontent.com/psikent/Scripting/main/Icon-Search/Icon-Search.scripting",
     "hash" : ""
   },
   "entry" : "index.tsx",
