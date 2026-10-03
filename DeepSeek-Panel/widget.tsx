@@ -1,4 +1,4 @@
-import { Button, Widget } from "scripting";
+import { Button, Script, Widget } from "scripting";
 import { ReloadIntent } from "./app_intents";
 import { api } from "./class/api";
 import { View as Small, WidgetData } from "./widget/small";
@@ -55,4 +55,4 @@ import { View as Inline } from "./widget/inline";
 })().catch(async (e) => {
   const { Text } = await import("scripting");
   Widget.present(<Text>{String(e)}</Text>);
-});
+}).finally(() => Script.exit());
