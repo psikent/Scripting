@@ -1,0 +1,49 @@
+{
+  "color" : "rgba(10, 132, 255, 1)",
+  "localizedNames" : {
+    "en" : "",
+    "zh" : "图标搜索",
+    "ja" : "",
+    "de" : "",
+    "it" : "",
+    "ru" : "",
+    "fr" : "",
+    "pt" : "",
+    "es" : ""
+  },
+  "intentInputTypes" : [
+
+  ],
+  "permissions" : null,
+  "name" : "图标搜索",
+  "version" : "1.0.0",
+  "icon" : "magnifyingglass",
+  "author" : {
+    "email" : "ipsikent@gmail.com",
+    "name" : "psikent",
+    "homepage" : null
+  },
+  "remoteResource" : {
+    "autoUpdateInterval" : 14400,
+    "url" : "https:\/\/github.com\/psikent\/Scripting\/tree\/main\/Icon-Search",
+    "hash" : ""
+  },
+  "entry" : "index.tsx",
+  "contributors" : [
+
+  ],
+  "iconImage" : "",
+  "runInApp" : true,
+  "description" : "",
+  "localizedDescriptions" : {
+    "zh" : "搜索并预览图标，支持复制图标链接",
+    "fr" : "",
+    "de" : "",
+    "pt" : "",
+    "ja" : "",
+    "es" : "",
+    "it" : "",
+    "ru" : "",
+    "en" : ""
+  }
+}

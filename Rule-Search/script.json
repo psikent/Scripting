@@ -1,0 +1,41 @@
+{
+  "iconImage" : "",
+  "permissions" : null,
+  "name" : "规则搜索",
+  "remoteResource" : {
+    "autoUpdateInterval" : 600,
+    "url" : "https:\/\/github.com\/psikent\/Scripting\/tree\/main\/Rule-Search",
+    "hash" : ""
+  },
+  "color" : "rgba(10, 132, 255, 1)",
+  "icon" : "magnifyingglass",
+  "author" : {
+    "name" : "psikent",
+    "email" : "ipsikent@gmail.com",
+    "homepage" : null
+  },
+  "description" : "",
+  "intentInputTypes" : [
+
+  ],
+  "contributors" : [
+
+  ],
+  "runInApp" : true,
+  "entry" : "index.tsx",
+  "localizedNames" : {
+    "zh" : "规则搜索"
+  },
+  "version" : "1.0.0",
+  "localizedDescriptions" : {
+    "ja" : "",
+    "fr" : "",
+    "pt" : "",
+    "zh" : "搜索 blackmatrix7\/ios_rule_script 仓库中的代理规则",
+    "es" : "",
+    "de" : "",
+    "ru" : "",
+    "it" : "",
+    "en" : ""
+  }
+}
