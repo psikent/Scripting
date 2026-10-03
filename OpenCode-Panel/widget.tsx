@@ -1,6 +1,6 @@
-import { Button, Widget } from "scripting";
+import { Button, Script, Widget } from "scripting";
 import { ReloadIntent } from "./app_intents";
-import { api } from "./class/api";
+import { api, remainingPercent } from "./class/api";
 import { View as Circle } from "./widget/circular";
 import { View as Small } from "./widget/small";
 
@@ -12,7 +12,7 @@ import { View as Small } from "./widget/small";
     case "accessoryCircular":
       Widget.present(
         <Button intent={ReloadIntent(undefined)} buttonStyle={"plain"}>
-          <Circle percent={data.usage.weekly.percent} />
+          <Circle percent={remainingPercent(data.usage.weekly.percent)} />
         </Button>,
       );
       break;
@@ -29,4 +29,4 @@ import { View as Small } from "./widget/small";
 })().catch(async (e) => {
   const { Text } = await import("scripting");
   Widget.present(<Text>{String(e)}</Text>);
-});
+}).finally(() => Script.exit());
