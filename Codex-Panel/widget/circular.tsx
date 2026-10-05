@@ -1,13 +1,13 @@
 import { Text, Gauge, Image, Script } from "scripting";
 
-export function View({ percent }: { percent: number }) {
+export function View({ remainingPercent }: { remainingPercent: number }) {
   const size = 11;
   return (
     <Gauge
       gaugeStyle={"accessoryCircular"}
       min={0}
       max={100}
-      value={percent}
+      value={remainingPercent}
       tint={"tertiaryLabel"}
       label={
         <Image
@@ -21,7 +21,7 @@ export function View({ percent }: { percent: number }) {
           }}
         />
       }
-      currentValueLabel={<Text>{`${percent}%`}</Text>}
+      currentValueLabel={<Text>{`${remainingPercent}%`}</Text>}
     />
   );
 }

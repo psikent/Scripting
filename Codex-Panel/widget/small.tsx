@@ -1,7 +1,16 @@
 import { Divider, HStack, Rectangle, Spacer, Text, VStack, ZStack } from "scripting";
+import { RateLimitWindow } from "../class/usage";
 import { View as Header } from "./comp/header";
 
-export function View({ email, percent, reset }: { email: string; percent: number; reset: number }) {
+export function View({
+  email,
+  fiveHour,
+  weekly,
+}: {
+  email: string;
+  fiveHour: RateLimitWindow | null;
+  weekly: RateLimitWindow | null;
+}) {
   return (
     <VStack padding={true} alignment={"leading"}>
       <Header />
@@ -11,35 +20,42 @@ export function View({ email, percent, reset }: { email: string; percent: number
         font={"caption"}
         fontWeight={"semibold"}
         foregroundStyle={"secondaryLabel"}
-        padding={{ top: 4, bottom: 5 }}>
+        padding={{ top: 4, bottom: 2 }}>
         {email}
       </Text>
-      <Progress percent={percent} padding={{ top: -2, bottom: 6 }} />
+      {fiveHour ? <LimitRow title={"5 小时"} window={fiveHour} /> : null}
+      {weekly ? <LimitRow title={"每周"} window={weekly} /> : null}
+    </VStack>
+  );
+}
+
+function LimitRow({ title, window }: { title: string; window: RateLimitWindow }) {
+  return (
+    <VStack alignment={"leading"}>
       <HStack font={"caption"} fontWeight={"semibold"} foregroundStyle={"secondaryLabel"}>
-        <Text>{"Reset:"}</Text>
+        <Text>{title}</Text>
         <Spacer />
-        <Text>
-          {new Date(reset * 1000).toLocaleString("zh-CN", {
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </Text>
+        <Text monospacedDigit={true}>{`${100 - window.used_percent}%`}</Text>
+      </HStack>
+      <Progress percent={100 - window.used_percent} />
+      <HStack font={"caption2"} foregroundStyle={"secondaryLabel"}>
+        <Text>{"重置"}</Text>
+        <Spacer />
+        <Text>{formatReset(window.reset_at)}</Text>
       </HStack>
     </VStack>
   );
 }
 
 function Progress({ percent }: { percent: number }) {
-  const cornerRadius = 13;
+  const cornerRadius = 4;
   return (
-    <ZStack>
+    <ZStack frame={{ height: 8 }}>
       <Rectangle
         fill={"tertiarySystemFill"}
         clipShape={{
           type: "rect",
-          cornerRadius: cornerRadius,
+          cornerRadius,
         }}
         overlay={
           <Rectangle
@@ -54,20 +70,20 @@ function Progress({ percent }: { percent: number }) {
             }}
             clipShape={{
               type: "rect",
-              cornerRadius: cornerRadius,
+              cornerRadius,
             }}
           />
         }
       />
-      <HStack>
-        <Spacer />
-        <Text
-          font={"headline"}
-          padding={{ trailing: 9 }}
-          monospacedDigit={true}
-          // foregroundStyle={"secondaryLabel"}
-        >{`${percent}%`}</Text>
-      </HStack>
     </ZStack>
   );
+}
+
+function formatReset(reset: number) {
+  return new Date(reset * 1000).toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }

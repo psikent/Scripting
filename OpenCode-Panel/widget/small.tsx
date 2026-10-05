@@ -1,5 +1,5 @@
 import { Divider, HStack, Rectangle, Spacer, Text, VStack, ZStack } from "scripting";
-import { WINDOW_META, type GoUsage, type WindowKey } from "../class/api";
+import { WINDOW_META, remainingPercent, type GoUsage, type WindowKey } from "../class/api";
 import { View as Header } from "./comp/header";
 
 export function View({ usage }: { usage: GoUsage["usage"] }) {
@@ -17,6 +17,7 @@ export function View({ usage }: { usage: GoUsage["usage"] }) {
 function Row({ windowKey, usage }: { windowKey: WindowKey; usage: GoUsage["usage"] }) {
   const window = usage[windowKey];
   const limited = window.status === "rate-limited";
+  const remaining = remainingPercent(window.percent);
 
   return (
     <VStack spacing={2} padding={{ top: 4 }}>
@@ -26,10 +27,10 @@ function Row({ windowKey, usage }: { windowKey: WindowKey; usage: GoUsage["usage
         <Text
           foregroundStyle={limited ? "systemRed" : "label"}
           monospacedDigit={true}>
-          {`${window.percent}%`}
+          {`${remaining}%`}
         </Text>
       </HStack>
-      <Progress percent={window.percent} color={limited ? "systemRed" : "tintColor"} />
+      <Progress percent={remaining} color={limited ? "systemRed" : "tintColor"} />
     </VStack>
   );
 }

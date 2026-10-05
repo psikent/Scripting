@@ -25,6 +25,11 @@ export const WINDOW_META = {
 
 export type WindowKey = keyof typeof WINDOW_META;
 
+/** 将 API 返回的已用百分比转换为剩余百分比 */
+export function remainingPercent(usedPercent: number): number {
+  return Math.max(0, Math.min(100, 100 - usedPercent));
+}
+
 class API {
   private KEY = "opencode_setting";
 

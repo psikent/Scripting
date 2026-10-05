@@ -16,7 +16,7 @@ import {
   useObservable,
   VStack,
 } from "scripting";
-import { api, WINDOW_META, type GoUsage, type GoWindow, type WindowKey } from "../class/api";
+import { api, remainingPercent, WINDOW_META, type GoUsage, type GoWindow, type WindowKey } from "../class/api";
 import { View as SettingView } from "./setting";
 
 export function View() {
@@ -102,6 +102,7 @@ function StackView() {
 function WindowRow({ windowKey, window }: { windowKey: WindowKey; window: GoWindow }) {
   const meta = WINDOW_META[windowKey];
   const limited = window.status === "rate-limited";
+  const remaining = remainingPercent(window.percent);
 
   return (
     <VStack spacing={4} padding={{ vertical: 6 }}>
@@ -109,10 +110,10 @@ function WindowRow({ windowKey, window }: { windowKey: WindowKey; window: GoWind
         <Text fontWeight={"semibold"}>{meta.label}</Text>
         <Spacer />
         <Text font={"footnote"} foregroundStyle={"secondaryLabel"} monospacedDigit={true}>
-          {`限额 $${meta.limit} · 已用 ${window.percent}%`}
+          {`限额 $${meta.limit} · 剩余 ${remaining}%`}
         </Text>
       </HStack>
-      <Progress percent={window.percent} color={limited ? "systemRed" : "tintColor"} />
+      <Progress percent={remaining} color={limited ? "systemRed" : "tintColor"} />
       <HStack>
         <Text font={"footnote"} foregroundStyle={limited ? "systemRed" : "secondaryLabel"}>
           {limited ? "已超出限额" : "状态正常"}
