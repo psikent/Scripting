@@ -4,7 +4,7 @@ import { View as Header } from "./comp/header";
 
 export function View({ usage }: { usage: GoUsage["usage"] }) {
   return (
-    <VStack padding={true} alignment={"leading"}>
+    <VStack padding={true} alignment={"leading"} spacing={2}>
       <Header />
       <Divider />
       {(Object.keys(WINDOW_META) as WindowKey[]).map((k) => (
@@ -20,19 +20,35 @@ function Row({ windowKey, usage }: { windowKey: WindowKey; usage: GoUsage["usage
   const remaining = remainingPercent(window.percent);
 
   return (
-    <VStack spacing={2} padding={{ top: 4 }}>
-      <HStack font={"caption"} fontWeight={"semibold"} foregroundStyle={"secondaryLabel"}>
+    <VStack spacing={0} padding={{ top: 1 }}>
+      <HStack font={"caption2"} fontWeight={"semibold"} foregroundStyle={"secondaryLabel"}>
         <Text>{WINDOW_META[windowKey].label}</Text>
         <Spacer />
         <Text
+          font={"caption"}
           foregroundStyle={limited ? "systemRed" : "label"}
           monospacedDigit={true}>
           {`${remaining}%`}
         </Text>
       </HStack>
       <Progress percent={remaining} color={limited ? "systemRed" : "tintColor"} />
+      <Text font={"caption2"} foregroundStyle={"secondaryLabel"}>
+        {`重置 ${formatReset(window.resetsAt)}`}
+      </Text>
     </VStack>
   );
+}
+
+function formatReset(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "时间未知";
+  return date.toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 function Progress({
@@ -50,7 +66,7 @@ function Progress({
         fill={"tertiarySystemFill"}
         clipShape={{
           type: "rect",
-          cornerRadius: cornerRadius,
+          cornerRadius,
         }}
         overlay={
           <Rectangle
@@ -65,7 +81,7 @@ function Progress({
             }}
             clipShape={{
               type: "rect",
-              cornerRadius: cornerRadius,
+              cornerRadius,
             }}
           />
         }
