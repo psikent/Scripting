@@ -1,4 +1,5 @@
 import { fetch } from "scripting";
+import { parseResetCardSnapshot, ResetCardSnapshot } from "./reset-cards";
 
 class API {
   private KEY = "setting";
@@ -27,6 +28,19 @@ class API {
       throw new Error(`获取额度失败（HTTP ${response.status}）`);
     }
     return await response.json();
+  }
+
+  async getResetCards(): Promise<ResetCardSnapshot> {
+    const response = await fetch(`${this.base}/backend-api/wham/rate-limit-reset-credits`, {
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${this.token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`获取重置卡失败（HTTP ${response.status}）`);
+    }
+    return parseResetCardSnapshot(await response.json());
   }
 }
 
