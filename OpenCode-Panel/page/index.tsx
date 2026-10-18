@@ -20,22 +20,9 @@ import { api, remainingPercent, WINDOW_META, type GoUsage, type GoWindow, type W
 import { View as SettingView } from "./setting";
 
 export function View() {
-  const dismiss = Navigation.useDismiss();
   return (
     <NavigationStack>
-      <StackView
-        navigationTitle={Script.name}
-        toolbar={{
-          topBarLeading: [<Button title={"关闭"} systemImage={"xmark"} action={dismiss} />],
-          topBarTrailing: [
-            <Button
-              title={"设置"}
-              systemImage={"gear"}
-              action={() => Navigation.present(<SettingView />)}
-            />,
-          ],
-        }}
-      />
+      <StackView />
     </NavigationStack>
   );
 }
@@ -43,29 +30,72 @@ export function View() {
 export default View;
 
 function StackView() {
+  const dismiss = Navigation.useDismiss();
   const data = useObservable<GoUsage | null>();
+  const loadError = useObservable("");
 
   async function init() {
+    loadError.setValue("");
     try {
       if (!api.token) return data.setValue(null);
       const r = await api.goUsage();
       data.setValue(r);
     } catch (e) {
-      await Dialog.alert({ message: String(e) });
+      loadError.setValue(String(e));
     }
   }
+
+  const screenProps = {
+    navigationTitle: Script.name,
+    toolbar: {
+      topBarLeading: [<Button title={"关闭"} systemImage={"xmark"} action={dismiss} />],
+      topBarTrailing: [
+        <Button
+          title={"设置"}
+          systemImage={"gear"}
+          action={async () => {
+            await Navigation.present(<SettingView />);
+            data.setValue(undefined);
+            await init();
+          }}
+        />,
+      ],
+    },
+  };
 
   useEffect(() => {
     init();
   }, []);
 
+  if (loadError.value) {
+    return (
+      <ContentUnavailableView
+        {...screenProps}
+        label={<Label title={"额度加载失败"} systemImage={"exclamationmark.triangle"} />}
+        description={<Text>{loadError.value}</Text>}
+        actions={[
+          <Button
+            title={"重试"}
+            systemImage={"arrow.trianglehead.clockwise"}
+            action={() => {
+              loadError.setValue("");
+              data.setValue(undefined);
+              init();
+            }}
+          />,
+        ]}
+      />
+    );
+  }
+
   if (data.value === undefined) {
-    return <ProgressView />;
+    return <ProgressView {...screenProps} />;
   }
 
   if (data.value === null) {
     return (
       <ContentUnavailableView
+        {...screenProps}
         label={<Label title={"请先设置 API Key"} systemImage={"gear"} />}
         actions={[
           <Button
@@ -85,6 +115,7 @@ function StackView() {
 
   return (
     <List
+      {...screenProps}
       refreshable={async () => {
         await Promise.all([init(), new Promise((r: any) => setTimeout(r, 500))]);
       }}>
