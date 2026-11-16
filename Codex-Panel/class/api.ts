@@ -1,4 +1,4 @@
-import { fetch } from "scripting";
+import { fetch, type AbortSignal } from "scripting";
 import { parseResetCardSnapshot, ResetCardSnapshot } from "./reset-cards";
 
 class API {
@@ -17,28 +17,32 @@ class API {
     });
   }
 
-  async getUsage() {
+  async getUsage(signal?: AbortSignal) {
     const response = await fetch(`${this.base}/backend-api/wham/usage`, {
+      timeout: 4,
+      signal,
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${this.token}`,
       },
     });
     if (!response.ok) {
-      throw new Error(`获取额度失败（HTTP ${response.status}）`);
+      throw Object.assign(new Error(`获取额度失败（HTTP ${response.status}）`), { status: response.status });
     }
     return await response.json();
   }
 
-  async getResetCards(): Promise<ResetCardSnapshot> {
+  async getResetCards(signal?: AbortSignal): Promise<ResetCardSnapshot> {
     const response = await fetch(`${this.base}/backend-api/wham/rate-limit-reset-credits`, {
+      timeout: 4,
+      signal,
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${this.token}`,
       },
     });
     if (!response.ok) {
-      throw new Error(`获取重置卡失败（HTTP ${response.status}）`);
+      throw Object.assign(new Error(`获取重置卡失败（HTTP ${response.status}）`), { status: response.status });
     }
     return parseResetCardSnapshot(await response.json());
   }

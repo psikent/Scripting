@@ -2,10 +2,10 @@ import { Divider, HStack, Rectangle, Spacer, Text, VStack, ZStack } from "script
 import { WINDOW_META, remainingPercent, type GoUsage, type WindowKey } from "../class/api";
 import { View as Header } from "./comp/header";
 
-export function View({ usage }: { usage: GoUsage["usage"] }) {
+export function View({ usage, stale = false }: { usage: GoUsage["usage"]; stale?: boolean }) {
   return (
     <VStack padding={true} alignment={"leading"} spacing={2}>
-      <Header />
+      <Header stale={stale} />
       <Divider />
       {(Object.keys(WINDOW_META) as WindowKey[]).map((k) => (
         <Row key={k} windowKey={k} usage={usage} />

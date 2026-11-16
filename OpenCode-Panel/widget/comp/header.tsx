@@ -1,6 +1,6 @@
 import { HStack, Image, Link, Script, Spacer, Text } from "scripting";
 
-export function View() {
+export function View({ stale = false }: { stale?: boolean }) {
   const size = 19;
   return (
     <Link url={"https://opencode.ai"} buttonStyle={"plain"}>
@@ -14,6 +14,7 @@ export function View() {
             dark: Script.directory + "/image/dark.png",
           }}
         />
+        {stale ? <Text font={"caption2"} foregroundStyle={"secondaryLabel"}>{"缓存"}</Text> : null}
         <Spacer />
         <Text font={"headline"} padding={{ top: -2 }}>
           {"OpenCode"}

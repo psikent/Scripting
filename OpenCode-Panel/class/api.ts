@@ -1,4 +1,4 @@
-import { fetch } from "scripting";
+import { fetch, type AbortSignal } from "scripting";
 
 /** Go 限额单个窗口 */
 export type GoWindow = {
@@ -47,8 +47,10 @@ class API {
   }
 
   /** OpenCode Go 订阅三窗口限额（rolling 5h / weekly / monthly） */
-  async goUsage(): Promise<GoUsage> {
+  async goUsage(signal?: AbortSignal): Promise<GoUsage> {
     const res = await fetch(`${this.base}/zen/go/v1/usage`, {
+      timeout: 4,
+      signal,
       headers: {
         accept: "application/json",
         authorization: `Bearer ${this.token}`,
@@ -56,6 +58,9 @@ class API {
     });
 
     if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        throw Object.assign(new Error(`鉴权失败（HTTP ${res.status}）`), { status: res.status });
+      }
       let message = `HTTP ${res.status}`;
       try {
         const body = await res.json();
@@ -64,7 +69,7 @@ class API {
       } catch {
         // ignore parse error
       }
-      throw new Error(message);
+      throw Object.assign(new Error(message), { status: res.status });
     }
 
     return (await res.json()) as GoUsage;

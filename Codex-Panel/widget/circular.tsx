@@ -1,6 +1,6 @@
 import { Text, Gauge, Image, Script } from "scripting";
 
-export function View({ remainingPercent }: { remainingPercent: number }) {
+export function View({ remainingPercent, stale = false }: { remainingPercent: number; stale?: boolean }) {
   const size = 11;
   return (
     <Gauge
@@ -9,7 +9,7 @@ export function View({ remainingPercent }: { remainingPercent: number }) {
       max={100}
       value={remainingPercent}
       tint={"tertiaryLabel"}
-      label={
+      label={stale ? <Text font={"caption2"}>{"缓存"}</Text> : (
         <Image
           opacity={0.3}
           resizable={true}
@@ -20,7 +20,7 @@ export function View({ remainingPercent }: { remainingPercent: number }) {
             dark: Script.directory + "/image/dark.png",
           }}
         />
-      }
+      )}
       currentValueLabel={<Text>{`${remainingPercent}%`}</Text>}
     />
   );

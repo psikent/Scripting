@@ -15,9 +15,11 @@ export type ResetCardLoadState =
 export function View({
   weekly,
   resetCards,
+  stale = false,
 }: {
   weekly: RateLimitWindow | null;
   resetCards: ResetCardLoadState;
+  stale?: boolean;
 }) {
   const now = Date.now();
   const cards = resetCards.kind === "success"
@@ -26,7 +28,7 @@ export function View({
 
   return (
     <VStack padding={true} alignment={"leading"}>
-      <Header />
+      <Header stale={stale} />
       <Divider />
       {weekly ? (
         <LimitRow title={"每周"} window={weekly} />
