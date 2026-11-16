@@ -1,46 +1,46 @@
 {
-  "name" : "Surge规则Github托管",
   "iconImage" : "https:\/\/nssurge.com\/favicon.ico",
-  "localizedNames" : {
-    "ru" : "",
-    "fr" : "",
-    "es" : "",
-    "pt" : "",
-    "zh" : "",
-    "ja" : "",
-    "en" : "",
-    "it" : "",
-    "de" : ""
-  },
-  "version" : "1.0.0",
-  "contributors" : [
-
-  ],
-  "description" : "直接在已有规则文件基础上，添加新规则",
-  "author" : {
-    "homepage" : null,
-    "email" : null,
-    "name" : "Lucasss1916"
-  },
-  "localizedDescriptions" : {
-    "es" : "",
-    "it" : "",
-    "pt" : "",
-    "ja" : "",
-    "zh" : "",
-    "fr" : "",
-    "de" : "",
-    "ru" : "",
-    "en" : ""
-  },
-  "color" : "rgba(0, 0, 0, 1.00)",
-  "remoteResource" : null,
-  "permissions" : null,
   "intentInputTypes" : [
     "Text",
     "URLs"
   ],
-  "entry" : "index.tsx",
+  "runInApp" : false,
+  "localizedNames" : {
+    "de" : "",
+    "ja" : "",
+    "ru" : "",
+    "en" : "",
+    "fr" : "",
+    "pt" : "",
+    "zh" : "",
+    "es" : "",
+    "it" : ""
+  },
+  "author" : {
+    "email" : null,
+    "homepage" : null,
+    "name" : "Lucasss1916"
+  },
+  "localizedDescriptions" : {
+    "en" : "",
+    "ru" : "",
+    "ja" : "",
+    "it" : "",
+    "zh" : "",
+    "es" : "",
+    "de" : "",
+    "pt" : "",
+    "fr" : ""
+  },
+  "version" : "1.0.0",
+  "color" : "rgba(28, 140, 255,1)",
+  "remoteResource" : null,
   "icon" : "network",
-  "runInApp" : false
+  "description" : "直接在已有规则文件基础上，添加新规则",
+  "name" : "Surge规则Github托管",
+  "entry" : "index.tsx",
+  "contributors" : [
+
+  ],
+  "permissions" : null
 }

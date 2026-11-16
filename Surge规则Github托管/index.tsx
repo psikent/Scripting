@@ -915,34 +915,38 @@ function EditorView({
   }, [rules.value, deletedSnapshots.value])
 
   // === 操作 ===
-  const onMove = useCallback((indices: number[], newOffset: number) => {
-    // indices/newOffset 都是相对于当前 filteredRules 的下标
-    const fr = filteredRules
-    const moving = indices.map(i => fr[i])
-    const reduced = fr.filter((_, i) => !indices.includes(i))
-    reduced.splice(newOffset, 0, ...moving)
+  const visibleRules: Observable<Rule[]> = useObservable<Rule[]>(filteredRules)
 
-    // 把过滤后的新顺序合并回 master 数组（保持非可见项位置不变）
-    const ids = new Set(fr.map(r => r.id))
-    let f = 0
-    const newMaster = rules.value.map(r => (ids.has(r.id) ? reduced[f++] : r))
-    rules.setValue(newMaster)
-  }, [filteredRules])
-
-  const onDelete = useCallback((indices: number[]) => {
-    const fr = filteredRules
-    const idsToDelete = new Set(indices.map(i => fr[i].id))
-    const removed: Rule[] = []
-    const newMaster = rules.value.filter(r => {
-      if (!idsToDelete.has(r.id)) return true
-      const orig = getOriginal(r.id)
-      if (orig) removed.push(orig)
-      return false
-    })
-    rules.setValue(newMaster)
-    if (removed.length > 0) {
-      deletedSnapshots.setValue([...deletedSnapshots.value, ...removed])
+  useEffect(() => {
+    // 筛选变化只更新展示数据；订阅仅接收原生删除、移动操作。
+    const displayed: Rule[] = visibleRules.value
+    if (displayed.length !== filteredRules.length || displayed.some((rule: Rule, index: number) => rule !== filteredRules[index])) {
+      visibleRules.setValue(filteredRules)
     }
+    const applyVisibleEdit = (next: Rule[], previous: Rule[]): void => {
+      if (next === previous) return
+      const visibleIds: Set<string> = new Set(previous.map((r: Rule) => r.id))
+      const nextIds: Set<string> = new Set(next.map((r: Rule) => r.id))
+      const removed: Rule[] = []
+      let position: number = 0
+      const newMaster: Rule[] = []
+      for (const rule of rules.value) {
+        if (!visibleIds.has(rule.id)) {
+          newMaster.push(rule)
+        } else if (nextIds.has(rule.id)) {
+          newMaster.push(next[position++])
+        } else {
+          const original: Rule | undefined = getOriginal(rule.id)
+          if (original) removed.push(original)
+        }
+      }
+      rules.setValue(newMaster)
+      if (removed.length > 0) {
+        deletedSnapshots.setValue([...deletedSnapshots.value, ...removed])
+      }
+    }
+    visibleRules.subscribe(applyVisibleEdit)
+    return () => visibleRules.unsubscribe(applyVisibleEdit)
   }, [filteredRules])
 
   const startAdd = () => {
@@ -1075,24 +1079,36 @@ function EditorView({
 
   // === 拖拽细节：哪些规则从「原第几行」移到了「现第几行」 ===
   const movedItems = useMemo(() => {
-    if (!stats.reorder) return []
+    if (!showDiff.value || !stats.reorder) return []
     const origOrder = originalOrderRef.current!
     const presentIds = new Set(rules.value.map(r => r.id))
-    const expected = origOrder.filter(id => presentIds.has(id))
+    const expected: string[] = origOrder.filter((id: string) => presentIds.has(id))
+    const originalPositions: Map<string, number> = new Map(expected.map((id: string, index: number) => [id, index]))
     const moved: { rule: Rule; oldIndex: number; newIndex: number }[] = []
     let actualIdx = 0
     for (const r of rules.value) {
       if (!originalRef.current!.has(r.id)) continue
       if (expected[actualIdx] !== r.id) {
-        const oldIdx = expected.indexOf(r.id)
-        if (oldIdx >= 0) {
+        const oldIdx: number | undefined = originalPositions.get(r.id)
+        if (oldIdx !== undefined) {
           moved.push({ rule: r, oldIndex: oldIdx, newIndex: actualIdx })
         }
       }
       actualIdx++
     }
     return moved
-  }, [rules.value, stats.reorder])
+  }, [rules.value, stats.reorder, showDiff.value])
+
+  const buildRuleRow = useCallback((rule: Rule) => (
+    <RuleRow
+      key={rule.id}
+      rule={rule}
+      onTap={() => {
+        if (rule.type === RAW_TYPE && !isStandaloneComment(rule.value)) return
+        editingId.setValue(rule.id)
+      }}
+    />
+  ), [editingId])
 
   // === 渲染 ===
   return (
@@ -1171,7 +1187,7 @@ function EditorView({
         // —— Diff 预览 & 提交 ——
         {
           isPresented: showDiff,
-          content: (
+          content: showDiff.value ? (
             <NavigationStack>
               <DiffView
                 fileName={file.name}
@@ -1186,7 +1202,7 @@ function EditorView({
                 onConfirm={commit}
               />
             </NavigationStack>
-          ),
+          ) : <Text>{''}</Text>,
         },
       ]}
     >
@@ -1244,22 +1260,9 @@ function EditorView({
         }
       >
         <ForEach
-          count={filteredRules.length}
-          itemBuilder={(i: number) => {
-            const r = filteredRules[i]
-            return (
-              <RuleRow
-                key={r.id}
-                rule={r}
-                onTap={() => {
-                  if (r.type === RAW_TYPE && !isStandaloneComment(r.value)) return
-                  editingId.setValue(r.id)
-                }}
-              />
-            )
-          }}
-          onDelete={onDelete}
-          onMove={onMove}
+          data={visibleRules}
+          builder={buildRuleRow}
+          editActions="all"
         />
       </Section>
     </List>
