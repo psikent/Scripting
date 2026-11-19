@@ -15,7 +15,7 @@ import {
   useEffect,
   useObservable,
 } from "scripting";
-import { api, PackageUsageWindow } from "../class/api";
+import { api, PackageUsageWindow, ResetCards, ResetCardSummary } from "../class/api";
 
 export function View() {
   const dismiss = Navigation.useDismiss();
@@ -47,6 +47,7 @@ export function View() {
         <Section header={<Text>Coding Plan 套餐</Text>} footer={<CodingPlanHelp />}>
           <CodingPlanKeyField value={codingPlanKey} />
           <PackageUsageSection apiKey={codingPlanKey} />
+          <ResetCardsSection token={token} apiKey={codingPlanKey} />
         </Section>
       </List>
     </NavigationStack>
@@ -361,6 +362,98 @@ function PackageUsageSection({ apiKey }: { apiKey: Observable<string> }) {
       ))}
       <Button title="刷新套餐用量" action={refresh} />
     </>
+  );
+}
+
+interface ResetCardsState {
+  loading: boolean;
+  data: ResetCards | null;
+  error: string;
+}
+
+function ResetCardsSection({
+  token,
+  apiKey,
+}: {
+  token: Observable<string>;
+  apiKey: Observable<string>;
+}) {
+  const state = useObservable<ResetCardsState>({ loading: true, data: null, error: "" });
+
+  const refresh = async () => {
+    if (!token.value.trim() && !apiKey.value.trim()) {
+      state.setValue({ loading: false, data: null, error: "" });
+      return;
+    }
+    state.setValue({ loading: true, data: null, error: "" });
+    try {
+      const cards = await api.getResetCards(token.value, apiKey.value);
+      state.setValue({ loading: false, data: cards, error: "" });
+    } catch (error) {
+      state.setValue({
+        loading: false,
+        data: null,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  if (!token.value.trim() && !apiKey.value.trim()) return null;
+  if (state.value.loading) {
+    return (
+      <HStack spacing={8} frame={{ maxWidth: "infinity", minHeight: 44 }}>
+        <Text font="caption" fontWeight="semibold" foregroundStyle="secondaryLabel">
+          {"额度重置卡"}
+        </Text>
+        <Spacer />
+        <ProgressView />
+      </HStack>
+    );
+  }
+  if (state.value.error) {
+    return (
+      <HStack spacing={8} frame={{ maxWidth: "infinity", minHeight: 44 }}>
+        <Image systemName="exclamationmark.triangle.fill" foregroundStyle="systemOrange" />
+        <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={2}>
+          {state.value.error}
+        </Text>
+        <Spacer />
+        <Button title="重试" action={refresh} />
+      </HStack>
+    );
+  }
+  if (!state.value.data) return null;
+  return (
+    <>
+      <ResetCardRow title="5 小时重置" card={state.value.data.fiveHour} />
+      <ResetCardRow title="每周重置" card={state.value.data.weekly} />
+    </>
+  );
+}
+
+export function ResetCardRow({ title, card }: { title: string; card: ResetCardSummary }) {
+  return (
+    <VStack alignment="leading" spacing={6} padding={{ top: 6, bottom: 6 }}>
+      <HStack font="caption" fontWeight="semibold" foregroundStyle="secondaryLabel">
+        <Image systemName="arrow.clockwise.circle" foregroundStyle="accentColor" />
+        <Text>{title}</Text>
+        <Spacer />
+        <Text font="headline" foregroundStyle="label" monospacedDigit={true}>
+          {`${card.availableCount} 张可用`}
+        </Text>
+      </HStack>
+      <HStack font="caption" foregroundStyle="secondaryLabel">
+        <Text>{"最近到期"}</Text>
+        <Spacer />
+        <Text monospacedDigit={true}>
+          {card.nearestExpiry === null ? "—" : formatResetTime(card.nearestExpiry)}
+        </Text>
+      </HStack>
+    </VStack>
   );
 }
 

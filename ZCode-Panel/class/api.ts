@@ -54,6 +54,34 @@ export interface PackageUsage {
   monthly: PackageUsageWindow | null;
 }
 
+/** 一类额度重置卡的可用数量和最近到期时间。 */
+export interface ResetCardSummary {
+  availableCount: number;
+  nearestExpiry: number | null;
+}
+
+/** 五小时和每周额度重置卡。 */
+export interface ResetCards {
+  fiveHour: ResetCardSummary;
+  weekly: ResetCardSummary;
+}
+
+interface ResetCardRecord {
+  available?: boolean;
+  expireTime?: string;
+}
+
+interface ResetCardsResponse {
+  code?: number;
+  msg?: string;
+  message?: string;
+  success?: boolean;
+  data?: {
+    fiveHourResets?: ResetCardRecord[];
+    weekResets?: ResetCardRecord[];
+  };
+}
+
 interface PackageUsageLimit {
   type?: string;
   unit?: number;
@@ -220,6 +248,57 @@ class API {
       throw new Error(`套餐用量查询失败 (${res.status})`);
     }
     throw new Error("套餐用量查询失败：响应格式异常");
+  }
+
+  /**
+   * 只读查询个人套餐的重置卡，不调用使用重置卡接口。
+   * 控制台 token 优先；若已失效，再尝试套餐 API Key。
+   */
+  async getResetCards(token = this.token, codingPlanKey = this.codingPlanKey): Promise<ResetCards> {
+    const credentials = [token.trim(), codingPlanKey.trim()].filter((value) => value.length > 0);
+    if (credentials.length === 0) {
+      throw new Error("请填写 access_token 或 Coding Plan API Key");
+    }
+
+    let lastError = "";
+    for (const credential of credentials) {
+      try {
+        return await this.fetchResetCards(credential);
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error);
+      }
+    }
+    throw new Error(lastError || "重置卡查询失败，请检查登录凭据");
+  }
+
+  private async fetchResetCards(credential: string): Promise<ResetCards> {
+    const res = await fetch(
+      `${this.base}/api/biz/customer-package-reset/list?targetType=PERSONAL`,
+      {
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          authorization: String(credential),
+        },
+      },
+    );
+    let json: ResetCardsResponse | null = null;
+    try {
+      json = await res.json();
+    } catch {
+      // 鉴权或网关错误可能返回非 JSON。
+    }
+    const ok =
+      json?.success === true ||
+      (typeof json?.code === "number" && (json.code === 200 || json.code === 0));
+    if (!ok || !json?.data) {
+      if (json?.code === 1001) throw new Error("登录已失效，请重新获取 access_token");
+      throw new Error(json?.msg || json?.message || `重置卡查询失败 (${res.status})`);
+    }
+    return {
+      fiveHour: normalizeResetCards(json.data.fiveHourResets),
+      weekly: normalizeResetCards(json.data.weekResets),
+    };
   }
 
   private normalizePackageUsage(data: NonNullable<PackageUsageResponse["data"]>): PackageUsage {
@@ -394,6 +473,29 @@ class API {
   private todayString(): string {
     return this.dateString(new Date());
   }
+}
+
+function parseResetCardExpiry(value: string | undefined): number {
+  const input = (value ?? "").trim();
+  if (!input) return NaN;
+  const local = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(input);
+  if (!local) return Date.parse(input);
+  const [, year, month, day, hour = "0", minute = "0", second = "0"] = local;
+  return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour) - 8, Number(minute), Number(second));
+}
+
+function normalizeResetCards(records: ResetCardRecord[] | undefined): ResetCardSummary {
+  const available = (Array.isArray(records) ? records : []).filter(
+    (record) => record.available === true,
+  );
+  const expiries = available
+    .map((record) => parseResetCardExpiry(record.expireTime))
+    .filter((timestamp) => Number.isFinite(timestamp))
+    .sort((a, b) => a - b);
+  return {
+    availableCount: available.length,
+    nearestExpiry: expiries[0] ?? null,
+  };
 }
 
 export const api = new API();
