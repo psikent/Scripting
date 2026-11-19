@@ -47,7 +47,7 @@ export function View() {
         <Section header={<Text>Coding Plan 套餐</Text>} footer={<CodingPlanHelp />}>
           <CodingPlanKeyField value={codingPlanKey} />
           <PackageUsageSection apiKey={codingPlanKey} />
-          <ResetCardsSection token={token} apiKey={codingPlanKey} />
+          <ResetCardsSection token={token.value.trim()} />
         </Section>
       </List>
     </NavigationStack>
@@ -371,38 +371,41 @@ interface ResetCardsState {
   error: string;
 }
 
-function ResetCardsSection({
-  token,
-  apiKey,
-}: {
-  token: Observable<string>;
-  apiKey: Observable<string>;
-}) {
-  const state = useObservable<ResetCardsState>({ loading: true, data: null, error: "" });
-
-  const refresh = async () => {
-    if (!token.value.trim() && !apiKey.value.trim()) {
-      state.setValue({ loading: false, data: null, error: "" });
-      return;
-    }
-    state.setValue({ loading: true, data: null, error: "" });
-    try {
-      const cards = await api.getResetCards(token.value, apiKey.value);
-      state.setValue({ loading: false, data: cards, error: "" });
-    } catch (error) {
-      state.setValue({
-        loading: false,
-        data: null,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  };
+function ResetCardsSection({ token }: { token: string }) {
+  const state: Observable<ResetCardsState> = useObservable<ResetCardsState>({
+    loading: true,
+    data: null,
+    error: "",
+  });
+  const refreshCount: Observable<number> = useObservable(0);
 
   useEffect(() => {
-    refresh();
-  }, []);
+    if (!token) return;
+    let active: boolean = true;
+    state.setValue({ loading: true, data: null, error: "" });
+    const timer = setTimeout(async () => {
+      try {
+        const data: ResetCards = await api.getResetCards(token);
+        if (active) state.setValue({ loading: false, data, error: "" });
+      } catch (error) {
+        if (active) {
+          state.setValue({
+            loading: false,
+            data: null,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }, 400);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [token, refreshCount.value]);
 
-  if (!token.value.trim() && !apiKey.value.trim()) return null;
+  if (!token) {
+    return <Text foregroundStyle="secondaryLabel">填写控制台 access_token 后查看重置卡</Text>;
+  }
   if (state.value.loading) {
     return (
       <HStack spacing={8} frame={{ maxWidth: "infinity", minHeight: 44 }}>
@@ -419,10 +422,10 @@ function ResetCardsSection({
       <HStack spacing={8} frame={{ maxWidth: "infinity", minHeight: 44 }}>
         <Image systemName="exclamationmark.triangle.fill" foregroundStyle="systemOrange" />
         <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={2}>
-          {state.value.error}
+          {`重置卡 · ${state.value.error}`}
         </Text>
         <Spacer />
-        <Button title="重试" action={refresh} />
+        <Button title="重试" action={() => refreshCount.setValue(refreshCount.value + 1)} />
       </HStack>
     );
   }
@@ -435,7 +438,7 @@ function ResetCardsSection({
   );
 }
 
-export function ResetCardRow({ title, card }: { title: string; card: ResetCardSummary }) {
+function ResetCardRow({ title, card }: { title: string; card: ResetCardSummary }) {
   return (
     <VStack alignment="leading" spacing={6} padding={{ top: 6, bottom: 6 }}>
       <HStack font="caption" fontWeight="semibold" foregroundStyle="secondaryLabel">

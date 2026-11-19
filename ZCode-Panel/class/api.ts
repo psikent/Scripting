@@ -250,35 +250,18 @@ class API {
     throw new Error("套餐用量查询失败：响应格式异常");
   }
 
-  /**
-   * 只读查询个人套餐的重置卡，不调用使用重置卡接口。
-   * 控制台 token 优先；若已失效，再尝试套餐 API Key。
-   */
-  async getResetCards(token = this.token, codingPlanKey = this.codingPlanKey): Promise<ResetCards> {
-    const credentials = [token.trim(), codingPlanKey.trim()].filter((value) => value.length > 0);
-    if (credentials.length === 0) {
-      throw new Error("请填写 access_token 或 Coding Plan API Key");
-    }
+  /** 通过已登录的智谱控制台账号读取个人套餐的重置卡。 */
+  async getResetCards(token: string = this.token): Promise<ResetCards> {
+    const consoleToken: string = token.trim();
+    if (!consoleToken) throw new Error("请填写控制台 access_token");
 
-    let lastError = "";
-    for (const credential of credentials) {
-      try {
-        return await this.fetchResetCards(credential);
-      } catch (error) {
-        lastError = error instanceof Error ? error.message : String(error);
-      }
-    }
-    throw new Error(lastError || "重置卡查询失败，请检查登录凭据");
-  }
-
-  private async fetchResetCards(credential: string): Promise<ResetCards> {
     const res = await fetch(
       `${this.base}/api/biz/customer-package-reset/list?targetType=PERSONAL`,
       {
         headers: {
           accept: "application/json",
           "content-type": "application/json",
-          authorization: String(credential),
+          authorization: String(consoleToken),
         },
       },
     );
@@ -288,12 +271,14 @@ class API {
     } catch {
       // 鉴权或网关错误可能返回非 JSON。
     }
-    const ok =
-      json?.success === true ||
-      (typeof json?.code === "number" && (json.code === 200 || json.code === 0));
-    if (!ok || !json?.data) {
-      if (json?.code === 1001) throw new Error("登录已失效，请重新获取 access_token");
+    if (res.status === 401 || res.status === 403 || json?.code === 1001) {
+      throw new Error("请重新获取控制台 access_token");
+    }
+    if (!res.ok || json?.success !== true || json.code !== 200) {
       throw new Error(json?.msg || json?.message || `重置卡查询失败 (${res.status})`);
+    }
+    if (!Array.isArray(json.data?.fiveHourResets) || !Array.isArray(json.data?.weekResets)) {
+      throw new Error("重置卡查询失败，响应格式异常");
     }
     return {
       fiveHour: normalizeResetCards(json.data.fiveHourResets),
@@ -475,27 +460,33 @@ class API {
   }
 }
 
-function parseResetCardExpiry(value: string | undefined): number {
-  const input = (value ?? "").trim();
-  if (!input) return NaN;
-  const local = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(input);
-  if (!local) return Date.parse(input);
-  const [, year, month, day, hour = "0", minute = "0", second = "0"] = local;
-  return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour) - 8, Number(minute), Number(second));
+function parseResetCardExpiry(value: unknown): number {
+  if (typeof value !== "string") return NaN;
+  const input: string = value.trim();
+  const parts: RegExpExecArray | null = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?)(\.\d{1,3})?(Z|[+-]\d{2}:?\d{2})?$/.exec(input);
+  if (!parts) return NaN;
+  const [, day, time, fraction, zone] = parts;
+  const calendarDay: number = Date.parse(`${day}T00:00:00Z`);
+  if (!Number.isFinite(calendarDay) || new Date(calendarDay).toISOString().slice(0, 10) !== day) {
+    return NaN;
+  }
+  const fullTime: string = time.length === 5 ? `${time}:00` : time;
+  if (fullTime.startsWith("24:")) return NaN;
+  const milliseconds: string = fraction ? fraction.padEnd(4, "0") : "";
+  return Date.parse(`${day}T${fullTime}${milliseconds}${zone ?? "+08:00"}`);
 }
 
-function normalizeResetCards(records: ResetCardRecord[] | undefined): ResetCardSummary {
-  const available = (Array.isArray(records) ? records : []).filter(
-    (record) => record.available === true,
-  );
-  const expiries = available
-    .map((record) => parseResetCardExpiry(record.expireTime))
-    .filter((timestamp) => Number.isFinite(timestamp))
-    .sort((a, b) => a - b);
-  return {
-    availableCount: available.length,
-    nearestExpiry: expiries[0] ?? null,
-  };
+function normalizeResetCards(records: ResetCardRecord[]): ResetCardSummary {
+  const summary: ResetCardSummary = { availableCount: 0, nearestExpiry: null };
+  for (const record of records) {
+    if (record?.available !== true) continue;
+    summary.availableCount += 1;
+    const expiry: number = parseResetCardExpiry(record.expireTime);
+    if (Number.isFinite(expiry) && (summary.nearestExpiry === null || expiry < summary.nearestExpiry)) {
+      summary.nearestExpiry = expiry;
+    }
+  }
+  return summary;
 }
 
 export const api = new API();
