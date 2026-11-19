@@ -1,45 +1,46 @@
 {
-  "runInApp" : false,
-  "remoteResource" : {
-    "autoUpdateInterval" : null,
-    "hash" : "e1a2c5a036ecb7519224edc8b066dd27",
-    "url" : "https://raw.githubusercontent.com/psikent/Scripting/main/Codex-Panel/Codex%20Panel.scripting"
-  },
-  "color" : "rgba(0, 198, 165,1)",
-  "name" : "Codex Panel",
-  "description" : null,
+  "author" : null,
   "intentInputTypes" : [
 
   ],
-  "entry" : "index.tsx",
-  "iconImage" : null,
-  "icon" : "bolt.fill",
+  "localizedDescriptions" : {
+    "it" : "",
+    "ja" : "",
+    "pt" : "",
+    "fr" : "",
+    "en" : "",
+    "zh" : "",
+    "de" : "",
+    "es" : "",
+    "ru" : ""
+  },
+  "color" : "rgba(0, 198, 165,1)",
   "contributors" : [
 
   ],
-  "version" : null,
+  "description" : null,
+  "icon" : "bolt.fill",
+  "remoteResource" : {
+    "url" : "https:\/\/raw.githubusercontent.com\/psikent\/Scripting\/main\/Codex-Panel\/Codex%20Panel.scripting",
+    "hash" : "cabb5de60e42e5a6ffb13aa6daae1ab9",
+    "autoUpdateInterval" : 1800
+  },
   "localizedNames" : {
-    "fr" : "",
-    "ja" : "",
-    "en" : "",
-    "ru" : "",
-    "zh" : "",
-    "de" : "",
-    "pt" : "",
-    "it" : "",
-    "es" : ""
-  },
-  "author" : null,
-  "localizedDescriptions" : {
-    "de" : "",
-    "pt" : "",
-    "ru" : "",
-    "en" : "",
-    "zh" : "",
-    "fr" : "",
-    "ja" : "",
     "es" : "",
-    "it" : ""
+    "fr" : "",
+    "de" : "",
+    "pt" : "",
+    "ja" : "",
+    "ru" : "",
+    "zh" : "",
+    "it" : "",
+    "en" : ""
   },
-  "permissions" : null
+  "name" : "Codex Panel",
+  "permissions" : null,
+  "iconImage" : null,
+  "runInApp" : false,
+  "remoteDefinitionId" : null,
+  "entry" : "index.tsx",
+  "version" : null
 }

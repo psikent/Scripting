@@ -61,7 +61,7 @@ function StackView({
 
   async function init() {
     try {
-      if (!api.token) return data.setValue(null);
+      if (!api.authenticated) return data.setValue(null);
       const r = await api.getUsage();
       if (r.error) throw r.error.message;
       if (!r) throw new Error("未获取到额度数据");
@@ -86,7 +86,7 @@ function StackView({
       <ContentUnavailableView
         label={
           <Label
-            title={message || "请先设置 Token"}
+            title={message || "请先在设置中登录"}
             systemImage={message ? "exclamationmark.triangle" : "gear"}
           />
         }

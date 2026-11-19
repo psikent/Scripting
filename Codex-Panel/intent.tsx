@@ -14,8 +14,8 @@ const formatDate = (timestamp: number) =>
   });
 
 async function run() {
-  if (!api.token) {
-    Script.exit(Intent.text("额度评估失败：请先在 Codex Panel 中设置并保存 Token。"));
+  if (!api.authenticated) {
+    Script.exit(Intent.text("额度评估失败：请先在 Codex Panel 设置中登录。"));
     return;
   }
 
